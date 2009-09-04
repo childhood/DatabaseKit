@@ -16,7 +16,7 @@
 		C8B0526A105085FD00E8FB20 /* Errors.strings in Resources */ = {isa = PBXBuildFile; fileRef = C8B05269105085FD00E8FB20 /* Errors.strings */; };
 		C8B0526F1050860900E8FB20 /* DatabaseKitDefines.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B0526D1050860900E8FB20 /* DatabaseKitDefines.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C8B052701050860900E8FB20 /* DatabaseKitDefines.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B0526E1050860900E8FB20 /* DatabaseKitDefines.m */; };
-		C8B052B910508ABB00E8FB20 /* DKDatabaseLayout.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B052B710508ABB00E8FB20 /* DKDatabaseLayout.h */; };
+		C8B052B910508ABB00E8FB20 /* DKDatabaseLayout.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B052B710508ABB00E8FB20 /* DKDatabaseLayout.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C8B052BA10508ABB00E8FB20 /* DKDatabaseLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B052B810508ABB00E8FB20 /* DKDatabaseLayout.m */; };
 		C8B05311105094D200E8FB20 /* DKTransaction.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B0530F105094D200E8FB20 /* DKTransaction.h */; };
 		C8B05312105094D200E8FB20 /* DKTransaction.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B05310105094D200E8FB20 /* DKTransaction.m */; };

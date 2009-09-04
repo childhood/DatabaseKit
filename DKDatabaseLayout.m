@@ -55,17 +55,42 @@ NSString *const kDKRelationshipDeleteActionKey = @"kDKRelationshipDeleteActionKe
 
 - (NSString *)databaseName
 {
-	return mName;
+	return @"Test";
 }
 
 - (float)databaseVersion
 {
-	return mDatabaseVersion;
+	return 1.0;
 }
 
 - (NSArray *)entities
 {
-	return mEntities;
+	return [NSArray arrayWithObjects:
+			[NSDictionary dictionaryWithObjectsAndKeys:
+			 @"Person", kDKEntityNameKey,
+			 [NSArray arrayWithObjects:
+			  [NSDictionary dictionaryWithObjectsAndKeys:
+			   @"fullName", kDKAttributeNameKey,
+			   @"string", kDKAttributeTypeKey,
+			   [NSNumber numberWithBool:YES], kDKAttributeRequiredKey,
+			   @"Jen Smith", kDKAttributeDefaultValueKey,
+			   nil],
+			  
+			  [NSDictionary dictionaryWithObjectsAndKeys:
+			   @"age", kDKAttributeNameKey,
+			   @"float", kDKAttributeTypeKey,
+			   [NSNumber numberWithBool:YES], kDKAttributeRequiredKey,
+			   [NSNumber numberWithFloat:12.0], kDKAttributeDefaultValueKey,
+			   nil],
+			  
+			  [NSDictionary dictionaryWithObjectsAndKeys:
+			   @"comment", kDKAttributeNameKey,
+			   @"string", kDKAttributeTypeKey,
+			   nil],
+			  
+			  nil], kDKEntityAttributesKey,
+			 nil], 
+			nil];
 }
 
 @end

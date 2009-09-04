@@ -20,4 +20,6 @@
 - (id)initWithDatabaseAtURL:(NSURL *)location layout:(id < DKDatabaseLayout >)layout error:(NSError **)error;
 
 @property (readonly) sqlite3 *sqliteHandle;
+
+@property (readonly) double databaseVersion;
 @end

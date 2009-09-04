@@ -9,3 +9,4 @@
 
 #import <DatabaseKit/DatabaseKitDefines.h>
 #import <DatabaseKit/DKDatabase.h>
+#import <DatabaseKit/DKDatabaseLayout.h>

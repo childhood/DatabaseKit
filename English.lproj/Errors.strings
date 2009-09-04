@@ -7,3 +7,4 @@
  */
 
 "Failed to open database" = "Could not open database at path %@. Got error code %d.";
+"Update query failed" = "Update query (\"%@\") failed with error %d \"%s\".";
