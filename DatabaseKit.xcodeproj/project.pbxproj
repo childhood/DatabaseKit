@@ -9,8 +9,29 @@
 /* Begin PBXBuildFile section */
 		8DC2EF530486A6940098B216 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C1666FE841158C02AAC07 /* InfoPlist.strings */; };
 		8DC2EF570486A6940098B216 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7B1FEA5585E11CA2CBB /* Cocoa.framework */; };
-		C8B051E610504A0900E8FB20 /* DatabaseKit.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B051E510504A0900E8FB20 /* DatabaseKit.h */; };
+		C8B051E610504A0900E8FB20 /* DatabaseKit.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B051E510504A0900E8FB20 /* DatabaseKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C8B052351050599000E8FB20 /* DKDatabase.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B052331050599000E8FB20 /* DKDatabase.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C8B052361050599000E8FB20 /* DKDatabase.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B052341050599000E8FB20 /* DKDatabase.m */; };
+		C8B05243105059C200E8FB20 /* libsqlite3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = C8B05242105059C200E8FB20 /* libsqlite3.dylib */; };
+		C8B0526A105085FD00E8FB20 /* Errors.strings in Resources */ = {isa = PBXBuildFile; fileRef = C8B05269105085FD00E8FB20 /* Errors.strings */; };
+		C8B0526F1050860900E8FB20 /* DatabaseKitDefines.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B0526D1050860900E8FB20 /* DatabaseKitDefines.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C8B052701050860900E8FB20 /* DatabaseKitDefines.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B0526E1050860900E8FB20 /* DatabaseKitDefines.m */; };
+		C8B052B910508ABB00E8FB20 /* DKDatabaseLayout.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B052B710508ABB00E8FB20 /* DKDatabaseLayout.h */; };
+		C8B052BA10508ABB00E8FB20 /* DKDatabaseLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B052B810508ABB00E8FB20 /* DKDatabaseLayout.m */; };
+		C8B05311105094D200E8FB20 /* DKTransaction.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B0530F105094D200E8FB20 /* DKTransaction.h */; };
+		C8B05312105094D200E8FB20 /* DKTransaction.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B05310105094D200E8FB20 /* DKTransaction.m */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXBuildRule section */
+		C8B052A01050890B00E8FB20 /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.llvm.clang.1_0;
+			fileType = sourcecode.c;
+			isEditable = 1;
+			outputFiles = (
+			);
+		};
+/* End PBXBuildRule section */
 
 /* Begin PBXFileReference section */
 		0867D69BFE84028FC02AAC07 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
@@ -21,6 +42,16 @@
 		8DC2EF5A0486A6940098B216 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8DC2EF5B0486A6940098B216 /* DatabaseKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DatabaseKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C8B051E510504A0900E8FB20 /* DatabaseKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DatabaseKit.h; sourceTree = "<group>"; };
+		C8B052331050599000E8FB20 /* DKDatabase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabase.h; sourceTree = "<group>"; };
+		C8B052341050599000E8FB20 /* DKDatabase.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DKDatabase.m; sourceTree = "<group>"; };
+		C8B05242105059C200E8FB20 /* libsqlite3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libsqlite3.dylib; path = /usr/lib/libsqlite3.dylib; sourceTree = "<absolute>"; };
+		C8B05267105085FB00E8FB20 /* English */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/Errors.strings; sourceTree = "<group>"; };
+		C8B0526D1050860900E8FB20 /* DatabaseKitDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DatabaseKitDefines.h; sourceTree = "<group>"; };
+		C8B0526E1050860900E8FB20 /* DatabaseKitDefines.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DatabaseKitDefines.m; sourceTree = "<group>"; };
+		C8B052B710508ABB00E8FB20 /* DKDatabaseLayout.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabaseLayout.h; sourceTree = "<group>"; };
+		C8B052B810508ABB00E8FB20 /* DKDatabaseLayout.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DKDatabaseLayout.m; sourceTree = "<group>"; };
+		C8B0530F105094D200E8FB20 /* DKTransaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKTransaction.h; sourceTree = "<group>"; };
+		C8B05310105094D200E8FB20 /* DKTransaction.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DKTransaction.m; sourceTree = "<group>"; };
 		D2F7E79907B2D74100F64583 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = /System/Library/Frameworks/CoreData.framework; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
@@ -30,6 +61,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8DC2EF570486A6940098B216 /* Cocoa.framework in Frameworks */,
+				C8B05243105059C200E8FB20 /* libsqlite3.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -70,6 +102,7 @@
 			children = (
 				8DC2EF5A0486A6940098B216 /* Info.plist */,
 				089C1666FE841158C02AAC07 /* InfoPlist.strings */,
+				C8B05269105085FD00E8FB20 /* Errors.strings */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -77,6 +110,12 @@
 		08FB77AEFE84172EC02AAC07 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				C8B052331050599000E8FB20 /* DKDatabase.h */,
+				C8B052341050599000E8FB20 /* DKDatabase.m */,
+				C8B052B710508ABB00E8FB20 /* DKDatabaseLayout.h */,
+				C8B052B810508ABB00E8FB20 /* DKDatabaseLayout.m */,
+				C8B0530F105094D200E8FB20 /* DKTransaction.h */,
+				C8B05310105094D200E8FB20 /* DKTransaction.m */,
 			);
 			name = Classes;
 			sourceTree = "<group>";
@@ -95,6 +134,7 @@
 				0867D6A5FE840307C02AAC07 /* AppKit.framework */,
 				D2F7E79907B2D74100F64583 /* CoreData.framework */,
 				0867D69BFE84028FC02AAC07 /* Foundation.framework */,
+				C8B05242105059C200E8FB20 /* libsqlite3.dylib */,
 			);
 			name = "Other Frameworks";
 			sourceTree = "<group>";
@@ -104,6 +144,8 @@
 			children = (
 				32DBCF5E0370ADEE00C91783 /* DatabaseKit_Prefix.pch */,
 				C8B051E510504A0900E8FB20 /* DatabaseKit.h */,
+				C8B0526D1050860900E8FB20 /* DatabaseKitDefines.h */,
+				C8B0526E1050860900E8FB20 /* DatabaseKitDefines.m */,
 			);
 			name = "Other Sources";
 			sourceTree = "<group>";
@@ -116,6 +158,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				C8B051E610504A0900E8FB20 /* DatabaseKit.h in Headers */,
+				C8B052351050599000E8FB20 /* DKDatabase.h in Headers */,
+				C8B0526F1050860900E8FB20 /* DatabaseKitDefines.h in Headers */,
+				C8B052B910508ABB00E8FB20 /* DKDatabaseLayout.h in Headers */,
+				C8B05311105094D200E8FB20 /* DKTransaction.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -132,6 +178,7 @@
 				8DC2EF560486A6940098B216 /* Frameworks */,
 			);
 			buildRules = (
+				C8B052A01050890B00E8FB20 /* PBXBuildRule */,
 			);
 			dependencies = (
 			);
@@ -168,6 +215,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8DC2EF530486A6940098B216 /* InfoPlist.strings in Resources */,
+				C8B0526A105085FD00E8FB20 /* Errors.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -178,6 +226,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C8B052361050599000E8FB20 /* DKDatabase.m in Sources */,
+				C8B052701050860900E8FB20 /* DatabaseKitDefines.m in Sources */,
+				C8B052BA10508ABB00E8FB20 /* DKDatabaseLayout.m in Sources */,
+				C8B05312105094D200E8FB20 /* DKTransaction.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -190,6 +242,14 @@
 				089C1667FE841158C02AAC07 /* English */,
 			);
 			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		C8B05269105085FD00E8FB20 /* Errors.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C8B05267105085FB00E8FB20 /* English */,
+			);
+			name = Errors.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

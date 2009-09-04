@@ -7,3 +7,5 @@
  *
  */
 
+#import <DatabaseKit/DatabaseKitDefines.h>
+#import <DatabaseKit/DKDatabase.h>
