@@ -8,7 +8,9 @@
 
 #import "DKTransaction.h"
 #import "DKTransactionPrivate.h"
+
 #import "DKDatabase.h"
+#import "DKDatabasePrivate.h"
 
 @implementation DKTransaction
 
@@ -113,6 +115,15 @@
 	NSAssert((mCurrentStatement != NULL), @"Attempting to operate on transaction without an active statement.");
 	
 	return sqlite3_step(mCurrentStatement);
+}
+
+- (NSError *)lastError
+{
+	int errorCode = sqlite3_errcode(mSQLHandle);
+	if(errorCode != SQLITE_OK)
+		return DKLocalizedError(DKGeneralErrorDomain, errorCode, nil, @"%s", sqlite3_errmsg(mSQLHandle));
+	
+	return nil;
 }
 
 #pragma mark -

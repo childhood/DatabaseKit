@@ -59,9 +59,8 @@
 		NSAssert([transaction compileSQLStatement:statement error:&error], 
 				 @"Could not prepare statement %@. Got error %@.", error);
 		
-		int status = [transaction evaluateStatement];
-		NSAssert((status == SQLITE_ROW), 
-				 @"Could not step into query %@. Got error %d \"%s\".", statement, status, sqlite3_errmsg(database.sqliteHandle));
+		NSAssert(([transaction evaluateStatement] == SQLITE_ROW), 
+				 @"Could not step into query %@. Got error %@.", statement, [transaction lastError]);
 		
 		mUniqueIdentifier = [transaction longLongForColumnAtIndex:0] + 1;
 		
@@ -69,9 +68,8 @@
 		NSAssert([transaction compileSQLStatement:statement error:&error], 
 				 @"Could not prepare statement %@. Got error %@.", error);
 		
-		status = [transaction evaluateStatement];
-		NSAssert((status == SQLITE_DONE), 
-				 @"Could not step into query %@. Got error %d \"%s\".", statement, status, sqlite3_errmsg(database.sqliteHandle));
+		NSAssert(([transaction evaluateStatement] == SQLITE_ROW), 
+				 @"Could not step into query %@. Got error %@.", statement, [transaction lastError]);
 		
 		statement = [NSString stringWithFormat:@"UPDATE TableSequence SET offset=%lld WHERE name='%@'", mUniqueIdentifier, table.name];
 		NSAssert([transaction executeSQLStatement:statement error:&error],
@@ -198,9 +196,8 @@
 			[transaction setNullForColumnAtIndex:1];
 		}
 		
-		int status = [transaction evaluateStatement];
-		NSAssert((status == SQLITE_DONE), 
-				 @"Could not update %@ to %@. Error %d \"%s\"", key, value, status, sqlite3_errmsg(mDatabase.sqliteHandle));
+		NSAssert(([transaction evaluateStatement] == SQLITE_OK), 
+				 @"Could not update %@ to %@. Error %@.", key, value, [transaction lastError]);
 	}];
 	
 	if(value)
@@ -230,9 +227,8 @@
 		NSAssert([transaction compileSQLStatement:statement error:&error], 
 				 @"Could not look up value for %@. Error %@.", key, error);
 		
-		int status = [transaction evaluateStatement];
-		NSAssert((status == SQLITE_ROW), 
-				 @"Could not step into query %@. Got error %d \"%s\".", statement, status, sqlite3_errmsg(mDatabase.sqliteHandle));
+		NSAssert(([transaction evaluateStatement] == SQLITE_ROW), 
+				 @"Could not step into query %@. Got error %@.", statement, [transaction lastError]);
 		
 		DKAttributeDescription *attributeDescription = (DKAttributeDescription *)property;
 		switch (attributeDescription.type)

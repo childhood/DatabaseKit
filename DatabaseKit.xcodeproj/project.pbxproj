@@ -11,6 +11,7 @@
 		8DC2EF570486A6940098B216 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7B1FEA5585E11CA2CBB /* Cocoa.framework */; };
 		C898AE831052EADB001E3E82 /* DKTransactionPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = C898AE821052EADB001E3E82 /* DKTransactionPrivate.h */; };
 		C898AE901052EB73001E3E82 /* DKDatabaseObjectPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = C898AE8F1052EB73001E3E82 /* DKDatabaseObjectPrivate.h */; };
+		C898AED91052F1EC001E3E82 /* DKDatabasePrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = C898AED81052F1EC001E3E82 /* DKDatabasePrivate.h */; };
 		C8B051E610504A0900E8FB20 /* DatabaseKit.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B051E510504A0900E8FB20 /* DatabaseKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C8B052351050599000E8FB20 /* DKDatabase.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B052331050599000E8FB20 /* DKDatabase.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C8B052361050599000E8FB20 /* DKDatabase.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B052341050599000E8FB20 /* DKDatabase.m */; };
@@ -55,6 +56,7 @@
 		8DC2EF5B0486A6940098B216 /* DatabaseKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DatabaseKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C898AE821052EADB001E3E82 /* DKTransactionPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKTransactionPrivate.h; sourceTree = "<group>"; };
 		C898AE8F1052EB73001E3E82 /* DKDatabaseObjectPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabaseObjectPrivate.h; sourceTree = "<group>"; };
+		C898AED81052F1EC001E3E82 /* DKDatabasePrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabasePrivate.h; sourceTree = "<group>"; };
 		C8B051E510504A0900E8FB20 /* DatabaseKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DatabaseKit.h; sourceTree = "<group>"; };
 		C8B052331050599000E8FB20 /* DKDatabase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabase.h; sourceTree = "<group>"; };
 		C8B052341050599000E8FB20 /* DKDatabase.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DKDatabase.m; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 				C898AE8F1052EB73001E3E82 /* DKDatabaseObjectPrivate.h */,
 				C8B0FA9A10516A830020F5BC /* DKDatabaseObject.h */,
 				C8B0FA9B10516A830020F5BC /* DKDatabaseObject.m */,
+				C898AED81052F1EC001E3E82 /* DKDatabasePrivate.h */,
 				C8B052331050599000E8FB20 /* DKDatabase.h */,
 				C8B052341050599000E8FB20 /* DKDatabase.m */,
 				C8B052B710508ABB00E8FB20 /* DKDatabaseLayout.h */,
@@ -205,6 +208,7 @@
 				C8B0FC171052C0EC0020F5BC /* NSString+Database.h in Headers */,
 				C898AE831052EADB001E3E82 /* DKTransactionPrivate.h in Headers */,
 				C898AE901052EB73001E3E82 /* DKDatabaseObjectPrivate.h in Headers */,
+				C898AED91052F1EC001E3E82 /* DKDatabasePrivate.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

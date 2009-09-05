@@ -7,6 +7,8 @@
 //
 
 #import "DKDatabase.h"
+#import "DKDatabasePrivate.h"
+
 #import "DKDatabaseLayout.h"
 #import "DKTableDescription.h"
 
@@ -42,18 +44,27 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 
 - (void)cleanUp
 {
-	if(mSQLiteHandle)
-	{
-		//TODO: Handle pending transactions.
-		
-		sqlite3_close(mSQLiteHandle);
-		mSQLiteHandle = NULL;
-	}
-	
 	if(mTransactionQueue)
 	{
-		dispatch_release(mTransactionQueue);
-		mTransactionQueue = NULL;
+		//Cancel all transaction operations.
+		[mTransactionQueue cancelAllOperations];
+		
+		//Wait until any active transactions finish.
+		[mTransactionQueue waitUntilAllOperationsAreFinished];
+	}
+	
+	if(mSQLiteHandle)
+	{
+		//Finalize any active statements.
+		sqlite3_stmt *activeStatement;
+		while ((activeStatement = sqlite3_next_stmt(mSQLiteHandle, 0)))
+		{
+			sqlite3_finalize(activeStatement);
+		}
+		
+		//Close the database, and we're done.
+		sqlite3_close(mSQLiteHandle);
+		mSQLiteHandle = NULL;
 	}
 }
 
@@ -63,6 +74,9 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 	
 	[mDatabaseLayout release];
 	mDatabaseLayout = nil;
+	
+	[mTransactionQueue release];
+	mTransactionQueue = nil;
 	
 	[super dealloc];
 }
@@ -84,12 +98,17 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 
 - (id)initWithDatabaseAtURL:(NSURL *)location layout:(id < DKDatabaseLayout >)layout error:(NSError **)error
 {
-	NSParameterAssert(location);
-	NSAssert([location isFileURL], @"Expected file URL, none file URL %@ given.", location);
+	NSParameterAssert(layout);
 	
 	if((self = [super init]))
 	{
-		int status = sqlite3_open([[location path] UTF8String], &mSQLiteHandle);
+		int status = SQLITE_OK;
+		if(location)
+			status = sqlite3_open([[location path] UTF8String], &mSQLiteHandle);
+		else
+			//If we're given a nil location we create the database in memory.
+			status = sqlite3_open(":memory:", &mSQLiteHandle);
+		
 		if(status != SQLITE_OK)
 		{
 			[self release];
@@ -110,7 +129,10 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 		}
 		
 		mDatabaseLayout = [layout retain];
-		mTransactionQueue = dispatch_queue_create("com.roundabout.databasekit.transaction-queue", NULL);
+		
+		mTransactionQueue = [NSOperationQueue new];
+		[mTransactionQueue setName:@"com.roundabout.databasekit.transaction-queue"];
+		[mTransactionQueue setMaxConcurrentOperationCount:1];
 		
 		return self;
 	}
@@ -216,7 +238,7 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 - (void)transaction:(void(^)(DKTransaction *transaction))handler
 {
 	//All transactions are executed serially on a background thread.
-	dispatch_sync(mTransactionQueue, ^{
+	[mTransactionQueue addOperationWithBlock:^{
 		DKTransaction *transaction = [[DKTransaction alloc] initWithDatabase:self];
 		@try
 		{
@@ -226,7 +248,7 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 		{
 			[transaction release];
 		}
-	});
+	}];
 }
 
 #pragma mark -

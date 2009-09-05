@@ -51,6 +51,13 @@
  */
 - (int)evaluateStatement;
 
+/*!
+ @method
+ @abstract	The last error that occurred in the receiver.
+ @result	A new autoreleased NSError if the transaction is in a state of error; nil otherwise.
+ */
+- (NSError *)lastError;
+
 #pragma mark -
 
 /*!

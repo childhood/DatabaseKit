@@ -40,7 +40,7 @@
 /*!
  @method
  @abstract	Look up the cached value associated with a specified key.
- @param		key	The key of the value to look up. May not be nil.
+ @param		key		The key of the value to look up. May not be nil.
  @result	The value associated with the specified key if it is cached; nil otherwise.
  */
 - (id)cachedValueForKey:(NSString *)key;
@@ -50,7 +50,7 @@
 /*!
  @method
  @abstract		Remove the cached value associated with a specified key.
- @param			key	The key of the value whose cache is to be removed. May not be nil.
+ @param			key		The key of the value whose cache is to be removed. May not be nil.
  @discussion	This method does nothing if there is no cache for the value specified by the key.
  */
 - (void)removeCacheForKey:(NSString *)key;

@@ -17,8 +17,8 @@
  @method
  @abstract		Initialize a transaction with a database object.
  @param			database	The database the transaction is to operate through. May not be nil.
- @discussion	DKTransaction only keeps a weak reference to database. It is the database's responsibility
-				terminate any pending transactions and destroy if it is released.
+ @discussion	DKTransaction keeps a weak reference to its passed in database. If the database
+				is released it will stop any pending transactions and destroy them.
  */
 - (id)initWithDatabase:(DKDatabase *)database;
 
