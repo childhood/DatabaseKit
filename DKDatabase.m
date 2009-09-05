@@ -8,62 +8,21 @@
 
 #import "DKDatabase.h"
 #import "DKDatabaseLayout.h"
+#import "DKTableDescription.h"
 
-BOOL DKTypeStringIsValidHighLevelType(NSString *type)
-{
-	NSCParameterAssert(type);
-	
-	return ([type isEqualToString:@"string"] || 
-			[type isEqualToString:@"date"] || 
-			[type isEqualToString:@"integer"] || 
-			[type isEqualToString:@"int8"] || 
-			[type isEqualToString:@"int16"] || 
-			[type isEqualToString:@"int32"] || 
-			[type isEqualToString:@"int64"] || 
-			[type isEqualToString:@"float"] || 
-			[type isEqualToString:@"data"] || 
-			[type isEqualToString:@"transformable"] ||
-			(NSClassFromString(type) != nil));
-}
+#import "DKFetchRequest.h"
 
-NSString *DKTypeStringConvertToSQLType(NSString *type)
-{
-	NSCParameterAssert(type);
-	
-	if([type isEqualToString:@"string"])
-		return @"TEXT";
-	else if([type isEqualToString:@"date"])
-		return @"DATETIME";
-	else if([type isEqualToString:@"int8"])
-		return @"TINYINT";
-	else if([type isEqualToString:@"int16"])
-		return @"SMALLINT";
-	else if([type isEqualToString:@"int32"])
-		return @"INT";
-	else if([type isEqualToString:@"int64"])
-		return @"BIGINT";
-	else if([type isEqualToString:@"float"])
-		return @"FLOAT";
-	else if([type isEqualToString:@"data"] || [type isEqualToString:@"transformable"] || (NSClassFromString(type) != nil))
-		return @"BLOB";
-	
-	//
-	//	The high level integer type behaves like NSInteger. On 32-bit systems
-	//	its an INT value in the database, and on 64-bit systems its a BIGINT value.
-	//
-	if([type isEqualToString:@"integer"])
-#if __LP64__
-		return @"BIGINT";
-#else
-		return @"INT";
-#endif /* __LP64__ */
-	
-	return nil;
-}
+#import "DKDatabaseObjectPrivate.h"
+#import "DKDatabaseObject.h"
+
+#import "DKTransaction.h"
+#import "DKTransactionPrivate.h"
+
+#import "NSString+Database.h"
 
 #pragma mark -
 
-NSString *const kPKDatabaseConfigurationTableName = @"PKDatabaseConfiguration";
+NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 
 @interface DKDatabase () //Continuation
 
@@ -76,7 +35,7 @@ NSString *const kPKDatabaseConfigurationTableName = @"PKDatabaseConfiguration";
 @implementation DKDatabase
 
 @synthesize sqliteHandle = mSQLiteHandle;
-@dynamic databaseVersion;
+@synthesize databaseLayout = mDatabaseLayout;
 
 #pragma mark -
 #pragma mark Destruction
@@ -90,11 +49,21 @@ NSString *const kPKDatabaseConfigurationTableName = @"PKDatabaseConfiguration";
 		sqlite3_close(mSQLiteHandle);
 		mSQLiteHandle = NULL;
 	}
+	
+	if(mTransactionQueue)
+	{
+		dispatch_release(mTransactionQueue);
+		mTransactionQueue = NULL;
+	}
 }
 
 - (void)dealloc
 {
 	[self cleanUp];
+	
+	[mDatabaseLayout release];
+	mDatabaseLayout = nil;
+	
 	[super dealloc];
 }
 
@@ -140,6 +109,9 @@ NSString *const kPKDatabaseConfigurationTableName = @"PKDatabaseConfiguration";
 			return nil;
 		}
 		
+		mDatabaseLayout = [layout retain];
+		mTransactionQueue = dispatch_queue_create("com.roundabout.databasekit.transaction-queue", NULL);
+		
 		return self;
 	}
 	return nil;
@@ -148,9 +120,9 @@ NSString *const kPKDatabaseConfigurationTableName = @"PKDatabaseConfiguration";
 #pragma mark -
 #pragma mark Database Interaction
 
-- (BOOL)tableExistsInDatabaseByName:(NSString *)name
+- (BOOL)tableExistsWithName:(NSString *)name
 {
-	NSString *query = [NSString stringWithFormat:@"PRAGMA table_info(%@)", name];
+	NSString *query = [NSString stringWithFormat:@"PRAGMA table_info(%@)", [name stringByEscapingStringForDatabaseQuery]];
 	
 	sqlite3_stmt *compiledSQLStatement = NULL;
 	if(sqlite3_prepare_v2(mSQLiteHandle, [query UTF8String], -1, &compiledSQLStatement, NULL) == SQLITE_OK)
@@ -164,37 +136,14 @@ NSString *const kPKDatabaseConfigurationTableName = @"PKDatabaseConfiguration";
 	return NO;
 }
 
-- (BOOL)executeUpdateSQL:(NSString *)query error:(NSError **)error
-{
-	NSLog(@"Running update query %@", query);
-	
-	char *errorMessage = NULL;
-	int status = SQLITE_OK;
-	if((status = sqlite3_exec(mSQLiteHandle, [query UTF8String], NULL, NULL, &errorMessage)) != SQLITE_OK)
-	{
-		NSLog(@"Query %@ failed with error %d %s.", query, status, errorMessage);
-		
-		if(error) *error = DKLocalizedError(DKGeneralErrorDomain, 
-											status, 
-											nil, 
-											@"Update query failed", query, status, errorMessage);
-		
-		sqlite3_free(errorMessage);
-		
-		return NO;
-	}
-	
-	return YES;
-}
-
 #pragma mark -
 
 - (double)databaseVersion
 {
 	double version = 0.0;
-	if([self tableExistsInDatabaseByName:kPKDatabaseConfigurationTableName])
+	if([self tableExistsWithName:kDKDatabaseConfigurationTableName])
 	{
-		NSString *query = [NSString stringWithFormat:@"SELECT databaseVersion FROM %@", kPKDatabaseConfigurationTableName];
+		NSString *query = [NSString stringWithFormat:@"SELECT databaseVersion FROM %@", kDKDatabaseConfigurationTableName];
 		
 		sqlite3_stmt *compiledSQLStatement = NULL;
 		if(sqlite3_prepare_v2(mSQLiteHandle, [query UTF8String], -1, &compiledSQLStatement, NULL) == SQLITE_OK)
@@ -214,38 +163,105 @@ NSString *const kPKDatabaseConfigurationTableName = @"PKDatabaseConfiguration";
 }
 
 #pragma mark -
-#pragma mark Set up
 
-- (BOOL)_createTableWithEntityLayoutDescription:(NSDictionary *)entityLayout error:(NSError **)error
+- (NSSet *)objectsInTable:(DKTableDescription *)table matchingQuery:(NSString *)query error:(NSError **)error
 {
-	NSString *entityName = [entityLayout objectForKey:kDKEntityNameKey];
+	NSParameterAssert(table);
+	
+	__block NSError *temporaryError = nil;
+	__block NSMutableSet *objects = nil;
+	[self transaction:^(DKTransaction *transaction) {
+		
+		NSString *query = nil;
+		if(query)
+			query = [NSString stringWithFormat:@"SELECT _dk_uniqueIdentifier FROM %@ WHERE %@", table.name, query];
+		else
+			query = [NSString stringWithFormat:@"SELECT _dk_uniqueIdentifier FROM %@", table.name];
+		
+		if(![transaction compileSQLStatement:query error:error])
+			return;
+		
+		objects = [NSMutableSet set];
+		while ([transaction evaluateStatement] == SQLITE_ROW)
+		{
+			int64_t uniqueIdentifier = [transaction longLongForColumnAtIndex:0];
+			id databaseObject = [[[table databaseObjectClass] alloc] initWithUniqueIdentifier:uniqueIdentifier table:table database:self];
+			if(databaseObject)
+				[objects addObject:databaseObject];
+		}
+	}];
+	
+	if(temporaryError)
+		if(error) *error = temporaryError;
+	
+	return objects;
+}
+
+- (NSArray *)executeFetchRequest:(DKFetchRequest *)fetchRequest error:(NSError **)error
+{
+	NSParameterAssert(fetchRequest);
+	
+	NSSet *objects = [self objectsInTable:fetchRequest.table matchingQuery:fetchRequest.filterString error:error];
+	if(objects)
+	{
+		NSArray *sortDescriptors = fetchRequest.sortDescriptors;
+		if(sortDescriptors)
+			return [objects sortedArrayUsingDescriptors:sortDescriptors];
+		
+		return [objects allObjects];
+	}
+	return nil;
+}
+
+- (void)transaction:(void(^)(DKTransaction *transaction))handler
+{
+	//All transactions are executed serially on a background thread.
+	dispatch_sync(mTransactionQueue, ^{
+		DKTransaction *transaction = [[DKTransaction alloc] initWithDatabase:self];
+		@try
+		{
+			handler(transaction);
+		}
+		@finally
+		{
+			[transaction release];
+		}
+	});
+}
+
+#pragma mark -
+#pragma mark Database set up
+
+- (BOOL)_createTableWithDescription:(DKTableDescription *)tableDescription transaction:(DKTransaction *)transaction error:(NSError **)error
+{
+	NSString *entityName = [tableDescription.name stringByEscapingStringForDatabaseQuery];
 	
 	//
 	//	Create the base query. All tables created by DatabaseKit have
 	//	a uuid column. This can be used to safely identify values in the
 	//	database across application launches.
 	//
-	NSMutableString *query = [NSMutableString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (uuid TEXT NOT NULL", entityName];
+	NSMutableString *query = [NSMutableString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (_dk_uniqueIdentifier BIGINT PRIMARY KEY NOT NULL", entityName];
 	
 	
-	for (NSDictionary *attribute in [entityLayout valueForKey:kDKEntityAttributesKey])
+	for (id property in tableDescription.properties)
 	{
-		NSString *name = [attribute valueForKey:kDKAttributeNameKey];
-		NSString *type = [attribute valueForKey:kDKAttributeTypeKey];
-		
-		if(DKTypeStringIsValidHighLevelType(type))
+		if([property isKindOfClass:[DKAttributeDescription class]])
 		{
+			DKAttributeDescription *attribute = (DKAttributeDescription *)property;
+			DKAttributeType attributeType = attribute.type;
+			
 			//
 			//	Look up the SQLite type for the high level type we're passed in
 			//	and append the base of this type.
 			//
-			[query appendFormat:@", %@ %@", name, DKTypeStringConvertToSQLType(type)];
+			[query appendFormat:@", %@ %@", attribute.name, DKAttributeTypeToSQLiteType(attributeType)];
 			
 			
 			//
 			//	If an attribute is required, we append the NOT NULL column constraint.
 			//
-			if([[attribute valueForKey:kDKAttributeRequiredKey] boolValue])
+			if(attribute.isRequired)
 				[query appendString:@" NOT NULL"];
 			
 			
@@ -253,40 +269,36 @@ NSString *const kPKDatabaseConfigurationTableName = @"PKDatabaseConfiguration";
 			//	Currently default value is only supported for string/float/integer/int*
 			//	columns. Attempting to give a default value to anything else will do nothing.
 			//
-			NSString *defaultValue = [attribute valueForKey:kDKAttributeDefaultValueKey];
+			NSString *defaultValue = attribute.defaultValue;
 			if(defaultValue)
 			{
-				if([type isEqualToString:@"string"])
+				if(attributeType == DKAttributeTypeString)
 				{
-					[query appendFormat:@" DEFAULT('%@')", [defaultValue stringByReplacingOccurrencesOfString:@"'" 
-																								   withString:@"''"]];
+					[query appendFormat:@" DEFAULT('%@')", [defaultValue stringByEscapingStringForDatabaseQuery]];
 				}
-				else if([type isEqualToString:@"float"])
+				else if(attributeType == DKAttributeTypeFloat)
 				{
-					[query appendFormat:@" DEFAULT(%f)", [type doubleValue]];
+					[query appendFormat:@" DEFAULT(%f)", [defaultValue doubleValue]];
 				}
-				else if([type isEqualToString:@"integer"] || [type isEqualToString:@"int8"] || 
-						[type isEqualToString:@"int16"] || [type isEqualToString:@"int32"] || 
-						[type isEqualToString:@"int64"])
+				else if((attributeType >= DKAttributeTypeInteger) && (attributeType <= DKAttributeTypeInt64))
 				{
-					[query appendFormat:@" DEFAULT(%lld)", [type longLongValue]];
+					[query appendFormat:@" DEFAULT(%lld)", [defaultValue longLongValue]];
 				}
 				else
 				{
-					NSLog(@"*** DatabaseKit: Type %@ does not support default values.", type);
+					NSLog(@"*** DatabaseKit: Type %d does not support default values.", attributeType);
 				}
 			}
 		}
+		else if([property isKindOfClass:[DKRelationshipDescription class]])
+		{
+			NSLog(@"*** DatabaseKit: Relationships are not implemented.");
+		}
 		else
 		{
-			NSLog(@"*** DatabaseKit: Unsupported type %@ by name %@ given.", type, name);
+			NSAssert(NO, @"Unexpected object of type %@ passed in with table properties.", [property class]);
 		}
 	}
-	
-	
-	/* TODO: Handle relationships */
-	if([[entityLayout objectForKey:kDKEntityRelationshipsKey] count] > 0)
-		NSLog(@"*** DatabaseKit: Relationships are not implemented.");
 	
 	
 	//
@@ -294,28 +306,38 @@ NSString *const kPKDatabaseConfigurationTableName = @"PKDatabaseConfiguration";
 	//
 	[query appendString:@");"];
 	
-	return [self executeUpdateSQL:query error:error];
+	return [transaction executeSQLStatement:query error:error];
 }
 
 - (BOOL)ensureDatabaseIsUsingLayout:(id < DKDatabaseLayout >)layout error:(NSError **)error
 {
-	if(![self tableExistsInDatabaseByName:kPKDatabaseConfigurationTableName])
+	DKTransaction *transaction = [[[DKTransaction alloc] initWithDatabase:self] autorelease];
+	
+	if(![self tableExistsWithName:kDKDatabaseConfigurationTableName])
 	{
-		NSString *query = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (databaseVersion FLOAT NOT NULL, databaseKitVersion FLOAT NOT NULL);", kPKDatabaseConfigurationTableName, [layout databaseVersion]];
-		if(![self executeUpdateSQL:query error:error])
+		NSString *query = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (databaseVersion FLOAT NOT NULL, databaseKitVersion FLOAT NOT NULL);", kDKDatabaseConfigurationTableName, [layout databaseVersion]];
+		if(![transaction executeSQLStatement:query error:error])
 			return NO;
 		
-		query = [NSString stringWithFormat:@"INSERT INTO %@ (databaseVersion, databaseKitVersion) VALUES(%f, 1.0);", kPKDatabaseConfigurationTableName, [layout databaseVersion]];
-		if(![self executeUpdateSQL:query error:error])
+		query = [NSString stringWithFormat:@"INSERT INTO %@ (databaseVersion, databaseKitVersion) VALUES(%f, 1.0);", kDKDatabaseConfigurationTableName, [layout databaseVersion]];
+		if(![transaction executeSQLStatement:query error:error])
+			return NO;
+		
+		query = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS TableSequence (name TEXT NOT NULL, offset BIGINT DEFAULT(0));"];
+		if(![transaction executeSQLStatement:query error:error])
 			return NO;
 	}
 	
-	for (NSDictionary *entity in [layout entities])
+	for (DKTableDescription *table in [layout tables])
 	{
-		NSString *entityName = [entity objectForKey:kDKEntityNameKey];
-		if(![self tableExistsInDatabaseByName:entityName])
+		NSString *tableName = [table.name stringByEscapingStringForDatabaseQuery];
+		if(![self tableExistsWithName:tableName])
 		{
-			if(![self _createTableWithEntityLayoutDescription:entity error:error])
+			if(![self _createTableWithDescription:table transaction:transaction error:error])
+				return NO;
+			
+			NSString *statement = [NSString stringWithFormat:@"INSERT OR IGNORE INTO TableSequence (name, offset) VALUES ('%@', 0)", tableName];
+			if(![transaction executeSQLStatement:statement error:error])
 				return NO;
 		}
 	}

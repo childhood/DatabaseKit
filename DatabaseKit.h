@@ -10,3 +10,6 @@
 #import <DatabaseKit/DatabaseKitDefines.h>
 #import <DatabaseKit/DKDatabase.h>
 #import <DatabaseKit/DKDatabaseLayout.h>
+#import <DatabaseKit/DKFetchRequest.h>
+#import <DatabaseKit/DKDatabaseObject.h>
+#import <DatabaseKit/DKTableDescription.h>

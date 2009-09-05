@@ -8,89 +8,47 @@
 
 #import "DKDatabaseLayout.h"
 
-NSString *const kDKEntityNameKey = @"kDKEntityNameKey";
-NSString *const kDKEntityClassKey = @"kDKEntityClassKey";
-NSString *const kDKEntityAttributesKey = @"kDKEntityAttributesKey";
-NSString *const kDKEntityRelationshipsKey = @"kDKEntityRelationshipsKey";
-
-NSString *const kDKAttributeNameKey = @"kDKAttributeNameKey";
-NSString *const kDKAttributeTypeKey = @"kDKAttributeTypeKey";
-NSString *const kDKAttributeRequiredKey = @"kDKAttributeRequiredKey";
-NSString *const kDKAttributeMinimumValueKey = @"kDKAttributeMinimumValueKey";
-NSString *const kDKAttributeMaximumValueKey = @"kDKAttributeMaximumValueKey";
-NSString *const kDKAttributeDefaultValueKey = @"kDKAttributeDefaultValueKey";
-
-NSString *const kDKRelationshipNameKey = @"kDKRelationshipNameKey";
-NSString *const kDKRelationshipDestinationKey = @"kDKRelationshipDestinationKey";
-NSString *const kDKRelationshipOneToManyKey = @"kDKRelationshipOneToManyKey";
-NSString *const kDKRelationshipDeleteActionKey = @"kDKRelationshipDeleteActionKey";
-
 @implementation DKDatabaseLayout
 
-- (id)initWithDatabaseLayoutAtURL:(NSURL *)url error:(NSError **)error
+- (void)dealloc
 {
-	NSParameterAssert(url);
+	[mName release];
+	mName = nil;
+	
+	[mTables release];
+	mTables = nil;
+	
+	[super dealloc];
+}
+
+- (id)initWithName:(NSString *)name version:(float)version tables:(NSArray *)tables
+{
 	if((self = [super init]))
 	{
-		NSXMLDocument *layoutDocument = [[NSXMLDocument alloc] initWithContentsOfURL:url options:0 error:error];
-		if(!layoutDocument)
-		{
-			[self release];
-			return nil;
-		}
-		
-		[layoutDocument release];
+		mName = [name copy];
+		mDatabaseVersion = version;
+		mTables = [[NSArray alloc] initWithArray:tables copyItems:NO];
 		
 		return self;
 	}
 	return nil;
 }
 
-+ (DKDatabaseLayout *)databaseLayoutAtURL:(NSURL *)url error:(NSError **)error
-{
-	return [[[self alloc] initWithDatabaseLayoutAtURL:url error:error] autorelease];
-}
-
 #pragma mark -
 
 - (NSString *)databaseName
 {
-	return @"Test";
+	return mName;
 }
 
 - (float)databaseVersion
 {
-	return 1.0;
+	return mDatabaseVersion;
 }
 
-- (NSArray *)entities
+- (NSArray *)tables
 {
-	return [NSArray arrayWithObjects:
-			[NSDictionary dictionaryWithObjectsAndKeys:
-			 @"Person", kDKEntityNameKey,
-			 [NSArray arrayWithObjects:
-			  [NSDictionary dictionaryWithObjectsAndKeys:
-			   @"fullName", kDKAttributeNameKey,
-			   @"string", kDKAttributeTypeKey,
-			   [NSNumber numberWithBool:YES], kDKAttributeRequiredKey,
-			   @"Jen Smith", kDKAttributeDefaultValueKey,
-			   nil],
-			  
-			  [NSDictionary dictionaryWithObjectsAndKeys:
-			   @"age", kDKAttributeNameKey,
-			   @"float", kDKAttributeTypeKey,
-			   [NSNumber numberWithBool:YES], kDKAttributeRequiredKey,
-			   [NSNumber numberWithFloat:12.0], kDKAttributeDefaultValueKey,
-			   nil],
-			  
-			  [NSDictionary dictionaryWithObjectsAndKeys:
-			   @"comment", kDKAttributeNameKey,
-			   @"string", kDKAttributeTypeKey,
-			   nil],
-			  
-			  nil], kDKEntityAttributesKey,
-			 nil], 
-			nil];
+	return mTables;
 }
 
 @end

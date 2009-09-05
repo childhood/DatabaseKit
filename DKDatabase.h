@@ -8,18 +8,27 @@
 
 #import <Cocoa/Cocoa.h>
 #import <sqlite3.h>
+#import <dispatch/dispatch.h>
 
 @protocol DKDatabaseLayout;
-@class DKTransactionManager;
+@class DKFetchRequest, DKTransaction, DKTableDescription;
 
 @interface DKDatabase : NSObject
 {
 @package
-	sqlite3 *mSQLiteHandle;
+	/* owner */	sqlite3 *mSQLiteHandle;
+	/* owner */	id < DKDatabaseLayout > mDatabaseLayout;
+	/* owner */	dispatch_queue_t mTransactionQueue;
 }
 - (id)initWithDatabaseAtURL:(NSURL *)location layout:(id < DKDatabaseLayout >)layout error:(NSError **)error;
 
 @property (readonly) sqlite3 *sqliteHandle;
 
-@property (readonly) double databaseVersion;
+@property (readonly) id < DKDatabaseLayout > databaseLayout;
+
+- (BOOL)tableExistsWithName:(NSString *)name;
+- (void)transaction:(void(^)(DKTransaction *transaction))handler;
+
+- (NSArray *)executeFetchRequest:(DKFetchRequest *)fetchRequest error:(NSError **)error;
+
 @end
