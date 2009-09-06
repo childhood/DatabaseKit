@@ -10,6 +10,7 @@
 #import "DKDatabaseObjectPrivate.h"
 
 #import "DKDatabase.h"
+#import "DKDatabasePrivate.h"
 #import "DKTableDescription.h"
 #import "DKTransaction.h"
 #import <sqlite3.h>
@@ -52,31 +53,7 @@
 	NSParameterAssert(table);
 	NSParameterAssert(database);
 	
-	[database transaction:^(DKTransaction *transaction) {
-		NSError *error = nil;
-		
-		NSString *statement = [NSString stringWithFormat:@"SELECT offset FROM TableSequence WHERE name='%@'", table.name];
-		NSAssert([transaction compileSQLStatement:statement error:&error], 
-				 @"Could not prepare statement %@. Got error %@.", error);
-		
-		NSAssert(([transaction evaluateStatement] == SQLITE_ROW), 
-				 @"Could not step into query %@. Got error %@.", statement, [transaction lastError]);
-		
-		mUniqueIdentifier = [transaction longLongForColumnAtIndex:0] + 1;
-		
-		statement = [NSString stringWithFormat:@"INSERT INTO %@ (_dk_uniqueIdentifier) VALUES (%lld)", table.name, mUniqueIdentifier];
-		NSAssert([transaction compileSQLStatement:statement error:&error], 
-				 @"Could not prepare statement %@. Got error %@.", error);
-		
-		NSAssert(([transaction evaluateStatement] == SQLITE_ROW), 
-				 @"Could not step into query %@. Got error %@.", statement, [transaction lastError]);
-		
-		statement = [NSString stringWithFormat:@"UPDATE TableSequence SET offset=%lld WHERE name='%@'", mUniqueIdentifier, table.name];
-		NSAssert([transaction executeSQLStatement:statement error:&error],
-				 @"Could not update sequenece table. Got error %@.", error);
-	}];
-	
-	return [self initWithUniqueIdentifier:mUniqueIdentifier table:table database:database];
+	return [database insertNewObjectIntoTable:table];
 }
 
 #pragma mark -
@@ -283,6 +260,19 @@
 	}];
 	
 	return result;
+}
+
+#pragma mark -
+#pragma mark Callbacks
+
+- (void)awakeFromInsertion
+{
+	//Do nothing.
+}
+
+- (void)awakeFromFetch
+{
+	
 }
 
 #pragma mark -

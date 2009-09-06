@@ -22,17 +22,8 @@
 
 #import "NSString+Database.h"
 
-#pragma mark -
-
-NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
-
-@interface DKDatabase () //Continuation
-
-- (BOOL)ensureDatabaseIsUsingLayout:(id < DKDatabaseLayout >)layout error:(NSError **)error;
-
-@end
-
-#pragma mark -
+NSString *const kDKDatabaseConfigurationTableName = @"_DKDatabaseConfiguration";
+NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 
 @implementation DKDatabase
 
@@ -56,7 +47,7 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 	if(mSQLiteHandle)
 	{
 		//Finalize any active statements.
-		sqlite3_stmt *activeStatement;
+		sqlite3_stmt *activeStatement = NULL;
 		while ((activeStatement = sqlite3_next_stmt(mSQLiteHandle, 0)))
 		{
 			sqlite3_finalize(activeStatement);
@@ -90,6 +81,7 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 #pragma mark -
 #pragma mark Construction
 
+//! @abstract	Simply raises.
 - (id)init
 {
 	NSAssert(NO, @"Attempting to initialize a DKDatabase with `init`. Use initWithDatabaseAtURL:layout:error: instead.");
@@ -186,14 +178,13 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 
 #pragma mark -
 
-- (NSSet *)objectsInTable:(DKTableDescription *)table matchingQuery:(NSString *)query error:(NSError **)error
+- (NSSet *)fetchObjectsInTable:(DKTableDescription *)table matchingQuery:(NSString *)query error:(NSError **)error
 {
 	NSParameterAssert(table);
 	
 	__block NSError *temporaryError = nil;
 	__block NSMutableSet *objects = nil;
 	[self transaction:^(DKTransaction *transaction) {
-		
 		NSString *query = nil;
 		if(query)
 			query = [NSString stringWithFormat:@"SELECT _dk_uniqueIdentifier FROM %@ WHERE %@", table.name, query];
@@ -207,14 +198,19 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 		while ([transaction evaluateStatement] == SQLITE_ROW)
 		{
 			int64_t uniqueIdentifier = [transaction longLongForColumnAtIndex:0];
-			id databaseObject = [[[table databaseObjectClass] alloc] initWithUniqueIdentifier:uniqueIdentifier table:table database:self];
+			id databaseObject = [[[table databaseObjectClass] alloc] initWithUniqueIdentifier:uniqueIdentifier 
+																						table:table 
+																					 database:self];
 			if(databaseObject)
+			{
+				[databaseObject awakeFromFetch];
 				[objects addObject:databaseObject];
+			}
 		}
 	}];
 	
-	if(temporaryError)
-		if(error) *error = temporaryError;
+	if(temporaryError && error)
+		*error = temporaryError;
 	
 	return objects;
 }
@@ -223,7 +219,7 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 {
 	NSParameterAssert(fetchRequest);
 	
-	NSSet *objects = [self objectsInTable:fetchRequest.table matchingQuery:fetchRequest.filterString error:error];
+	NSSet *objects = [self fetchObjectsInTable:fetchRequest.table matchingQuery:fetchRequest.filterString error:error];
 	if(objects)
 	{
 		NSArray *sortDescriptors = fetchRequest.sortDescriptors;
@@ -234,6 +230,45 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 	}
 	return nil;
 }
+
+- (id)insertNewObjectIntoTable:(DKTableDescription *)table
+{
+	NSParameterAssert(table);
+	
+	__block int64_t uniqueIdentifier = -1;
+	[self transaction:^(DKTransaction *transaction) {
+		NSError *error = nil;
+		
+		NSString *statement = [NSString stringWithFormat:@"SELECT offset FROM %@ WHERE name='%@'", kDKDatabaseSequenceTableName, table.name];
+		NSAssert([transaction compileSQLStatement:statement error:&error], 
+				 @"Could not prepare statement %@. Got error %@.", error);
+		
+		NSAssert(([transaction evaluateStatement] == SQLITE_ROW), 
+				 @"Could not step into query %@. Got error %@.", statement, [transaction lastError]);
+		
+		uniqueIdentifier = [transaction longLongForColumnAtIndex:0] + 1;
+		
+		statement = [NSString stringWithFormat:@"INSERT INTO %@ (_dk_uniqueIdentifier) VALUES (%lld)", table.name, uniqueIdentifier];
+		NSAssert([transaction compileSQLStatement:statement error:&error], 
+				 @"Could not prepare statement %@. Got error %@.", error);
+		
+		NSAssert(([transaction evaluateStatement] == SQLITE_ROW), 
+				 @"Could not step into query %@. Got error %@.", statement, [transaction lastError]);
+		
+		statement = [NSString stringWithFormat:@"UPDATE %@ SET offset=%lld WHERE name='%@'", kDKDatabaseSequenceTableName, uniqueIdentifier, table.name];
+		NSAssert([transaction executeSQLStatement:statement error:&error],
+				 @"Could not update sequenece table. Got error %@.", error);
+	}];
+	
+	id databaseObject = [[table.databaseObjectClass alloc] initWithUniqueIdentifier:uniqueIdentifier 
+																			  table:table 
+																		   database:self];
+	[databaseObject awakeFromInsertion];
+	
+	return databaseObject;
+}
+
+#pragma mark -
 
 - (void)transaction:(void(^)(DKTransaction *transaction))handler
 {
@@ -335,8 +370,18 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 
 - (BOOL)ensureDatabaseIsUsingLayout:(id < DKDatabaseLayout >)layout error:(NSError **)error
 {
+	//
+	//	We manually create a transaction here because this method is called before
+	//	the transaction queue is available for use.
+	//
 	DKTransaction *transaction = [[[DKTransaction alloc] initWithDatabase:self] autorelease];
 	
+	
+	//
+	//	First we need to verify that the database configuration table is present in the database.
+	//	This table contains the database version specified in the database layout as well as
+	//	the version of DatabaseKit that created the database.
+	//
 	if(![self tableExistsWithName:kDKDatabaseConfigurationTableName])
 	{
 		NSString *query = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (databaseVersion FLOAT NOT NULL, databaseKitVersion FLOAT NOT NULL);", kDKDatabaseConfigurationTableName, [layout databaseVersion]];
@@ -347,20 +392,33 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 		if(![transaction executeSQLStatement:query error:error])
 			return NO;
 		
-		query = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS TableSequence (name TEXT NOT NULL, offset BIGINT DEFAULT(0));"];
+		
+		//
+		//	The sequence table is used to track the last unique identifier created for each
+		//	table in the database, allowing us to fetch values we insert in DKDatabaseObject.
+		//
+		query = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (name TEXT NOT NULL, offset BIGINT DEFAULT(0));", kDKDatabaseSequenceTableName];
 		if(![transaction executeSQLStatement:query error:error])
 			return NO;
 	}
 	
+	
+	//
+	//	We enumerate the tables described in the database layout and attempt
+	//	to create each one. We also insert the initial table sequence value
+	//	here as well.
+	//
 	for (DKTableDescription *table in [layout tables])
 	{
 		NSString *tableName = [table.name stringByEscapingStringForDatabaseQuery];
-		if(![self tableExistsWithName:tableName])
+		BOOL tableExisted = [self tableExistsWithName:tableName];
+		
+		if(![self _createTableWithDescription:table transaction:transaction error:error])
+			return NO;
+		
+		if(!tableExisted)
 		{
-			if(![self _createTableWithDescription:table transaction:transaction error:error])
-				return NO;
-			
-			NSString *statement = [NSString stringWithFormat:@"INSERT OR IGNORE INTO TableSequence (name, offset) VALUES ('%@', 0)", tableName];
+			NSString *statement = [NSString stringWithFormat:@"INSERT OR IGNORE INTO %@ (name, offset) VALUES ('%@', 0)", kDKDatabaseSequenceTableName, tableName];
 			if(![transaction executeSQLStatement:statement error:error])
 				return NO;
 		}

@@ -26,4 +26,7 @@
 
 - (void)setDatabaseValue:(id)value forKey:(NSString *)key;
 - (id)databaseValueForKey:(NSString *)key;
+
+- (void)awakeFromInsertion;
+- (void)awakeFromFetch;
 @end

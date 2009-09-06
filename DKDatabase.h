@@ -72,4 +72,15 @@
  */
 - (NSArray *)executeFetchRequest:(DKFetchRequest *)fetchRequest error:(NSError **)error;
 
+#pragma mark -
+
+/*!
+ @method
+ @abstract		Insert a new object into a specified table returning the object.
+ @param			table	The table to insert the new database object into. May not be nil.
+ @result		A new database object inserted into the specified table if successful; nil otherwise.
+ @discussion	The value returned by this method is not autoreleased.
+ */
+- (id)insertNewObjectIntoTable:(DKTableDescription *)table;
+
 @end
