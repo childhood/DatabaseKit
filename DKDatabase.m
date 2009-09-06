@@ -238,7 +238,7 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 - (void)transaction:(void(^)(DKTransaction *transaction))handler
 {
 	//All transactions are executed serially on a background thread.
-	[mTransactionQueue addOperationWithBlock:^{
+	NSOperation *operation = [NSBlockOperation blockOperationWithBlock:^{
 		DKTransaction *transaction = [[DKTransaction alloc] initWithDatabase:self];
 		@try
 		{
@@ -249,6 +249,8 @@ NSString *const kDKDatabaseConfigurationTableName = @"DKDatabaseConfiguration";
 			[transaction release];
 		}
 	}];
+	[mTransactionQueue addOperation:operation];
+	[operation waitUntilFinished];
 }
 
 #pragma mark -
