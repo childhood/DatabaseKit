@@ -11,6 +11,7 @@
 		8DC2EF570486A6940098B216 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7B1FEA5585E11CA2CBB /* Cocoa.framework */; };
 		C87C49511055D1EC006F85E0 /* DKCompiledSQLQuery.h in Headers */ = {isa = PBXBuildFile; fileRef = C87C494F1055D1EC006F85E0 /* DKCompiledSQLQuery.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C87C49521055D1EC006F85E0 /* DKCompiledSQLQuery.m in Sources */ = {isa = PBXBuildFile; fileRef = C87C49501055D1EC006F85E0 /* DKCompiledSQLQuery.m */; };
+		C87C4C211055F494006F85E0 /* DKDatabaseTests.m in Sources */ = {isa = PBXBuildFile; fileRef = C87C4C1A1055F48D006F85E0 /* DKDatabaseTests.m */; };
 		C898AE901052EB73001E3E82 /* DKDatabaseObjectPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = C898AE8F1052EB73001E3E82 /* DKDatabaseObjectPrivate.h */; };
 		C898AED91052F1EC001E3E82 /* DKDatabasePrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = C898AED81052F1EC001E3E82 /* DKDatabasePrivate.h */; };
 		C8B051E610504A0900E8FB20 /* DatabaseKit.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B051E510504A0900E8FB20 /* DatabaseKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -45,6 +46,16 @@
 		};
 /* End PBXBuildRule section */
 
+/* Begin PBXContainerItemProxy section */
+		C87C4C351055F540006F85E0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8DC2EF4F0486A6940098B216;
+			remoteInfo = DatabaseKit;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		0867D69BFE84028FC02AAC07 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		0867D6A5FE840307C02AAC07 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
@@ -55,6 +66,11 @@
 		8DC2EF5B0486A6940098B216 /* DatabaseKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DatabaseKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C87C494F1055D1EC006F85E0 /* DKCompiledSQLQuery.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKCompiledSQLQuery.h; sourceTree = "<group>"; };
 		C87C49501055D1EC006F85E0 /* DKCompiledSQLQuery.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DKCompiledSQLQuery.m; sourceTree = "<group>"; };
+		C87C4BDE1055F318006F85E0 /* DatabaseKitTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "DatabaseKitTests-Info.plist"; sourceTree = "<group>"; };
+		C87C4C001055F3E8006F85E0 /* DBKitTest-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "DBKitTest-Info.plist"; sourceTree = "<group>"; };
+		C87C4C0F1055F423006F85E0 /* DatabaseKitTests.octest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DatabaseKitTests.octest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C87C4C191055F48D006F85E0 /* DKDatabaseTests.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabaseTests.h; sourceTree = "<group>"; };
+		C87C4C1A1055F48D006F85E0 /* DKDatabaseTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DKDatabaseTests.m; sourceTree = "<group>"; };
 		C898AE8F1052EB73001E3E82 /* DKDatabaseObjectPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabaseObjectPrivate.h; sourceTree = "<group>"; };
 		C898AED81052F1EC001E3E82 /* DKDatabasePrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabasePrivate.h; sourceTree = "<group>"; };
 		C8B051E510504A0900E8FB20 /* DatabaseKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DatabaseKit.h; sourceTree = "<group>"; };
@@ -89,6 +105,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C87C4C0C1055F423006F85E0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -96,6 +119,7 @@
 			isa = PBXGroup;
 			children = (
 				8DC2EF5B0486A6940098B216 /* DatabaseKit.framework */,
+				C87C4C0F1055F423006F85E0 /* DatabaseKitTests.octest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -103,11 +127,14 @@
 		0867D691FE84028FC02AAC07 /* DatabaseKit */ = {
 			isa = PBXGroup;
 			children = (
+				C87C4C181055F481006F85E0 /* Tests */,
 				08FB77AEFE84172EC02AAC07 /* Classes */,
 				32C88DFF0371C24200C91783 /* Other Sources */,
 				089C1665FE841158C02AAC07 /* Resources */,
 				0867D69AFE84028FC02AAC07 /* External Frameworks and Libraries */,
 				034768DFFF38A50411DB9C8B /* Products */,
+				C87C4BDE1055F318006F85E0 /* DatabaseKitTests-Info.plist */,
+				C87C4C001055F3E8006F85E0 /* DBKitTest-Info.plist */,
 			);
 			name = DatabaseKit;
 			sourceTree = "<group>";
@@ -186,6 +213,15 @@
 			name = "Other Sources";
 			sourceTree = "<group>";
 		};
+		C87C4C181055F481006F85E0 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				C87C4C191055F48D006F85E0 /* DKDatabaseTests.h */,
+				C87C4C1A1055F48D006F85E0 /* DKDatabaseTests.m */,
+			);
+			name = Tests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -231,6 +267,25 @@
 			productReference = 8DC2EF5B0486A6940098B216 /* DatabaseKit.framework */;
 			productType = "com.apple.product-type.framework";
 		};
+		C87C4C0E1055F423006F85E0 /* DatabaseKitTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C87C4C171055F432006F85E0 /* Build configuration list for PBXNativeTarget "DatabaseKitTests" */;
+			buildPhases = (
+				C87C4C0A1055F423006F85E0 /* Resources */,
+				C87C4C0B1055F423006F85E0 /* Sources */,
+				C87C4C0C1055F423006F85E0 /* Frameworks */,
+				C87C4C0D1055F423006F85E0 /* ShellScript */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C87C4C361055F540006F85E0 /* PBXTargetDependency */,
+			);
+			name = DatabaseKitTests;
+			productName = DatabaseKitTests;
+			productReference = C87C4C0F1055F423006F85E0 /* DatabaseKitTests.octest */;
+			productType = "com.apple.product-type.bundle";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -248,6 +303,7 @@
 			projectRoot = "";
 			targets = (
 				8DC2EF4F0486A6940098B216 /* DatabaseKit */,
+				C87C4C0E1055F423006F85E0 /* DatabaseKitTests */,
 			);
 		};
 /* End PBXProject section */
@@ -262,7 +318,30 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C87C4C0A1055F423006F85E0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C87C4C0D1055F423006F85E0 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Run the unit tests in this test bundle.\n\"${SYSTEM_DEVELOPER_DIR}/Tools/RunUnitTests\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		8DC2EF540486A6940098B216 /* Sources */ = {
@@ -281,7 +360,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C87C4C0B1055F423006F85E0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C87C4C211055F494006F85E0 /* DKDatabaseTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C87C4C361055F540006F85E0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8DC2EF4F0486A6940098B216 /* DatabaseKit */;
+			targetProxy = C87C4C351055F540006F85E0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		089C1666FE841158C02AAC07 /* InfoPlist.strings */ = {
@@ -368,6 +463,60 @@
 			};
 			name = Release;
 		};
+		C87C4C101055F424006F85E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				FRAMEWORK_SEARCH_PATHS = "$(DEVELOPER_LIBRARY_DIR)/Frameworks";
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/Cocoa.framework/Headers/Cocoa.h";
+				INFOPLIST_FILE = "DatabaseKitTests-Info.plist";
+				INSTALL_PATH = "$(USER_LIBRARY_DIR)/Bundles";
+				OTHER_LDFLAGS = (
+					"-framework",
+					Cocoa,
+					"-framework",
+					SenTestingKit,
+				);
+				PREBINDING = NO;
+				PRODUCT_NAME = DatabaseKitTests;
+				WRAPPER_EXTENSION = octest;
+			};
+			name = Debug;
+		};
+		C87C4C111055F424006F85E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				FRAMEWORK_SEARCH_PATHS = "$(DEVELOPER_LIBRARY_DIR)/Frameworks";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/Cocoa.framework/Headers/Cocoa.h";
+				INFOPLIST_FILE = "DatabaseKitTests-Info.plist";
+				INSTALL_PATH = "$(USER_LIBRARY_DIR)/Bundles";
+				OTHER_LDFLAGS = (
+					"-framework",
+					Cocoa,
+					"-framework",
+					SenTestingKit,
+				);
+				PREBINDING = NO;
+				PRODUCT_NAME = DatabaseKitTests;
+				WRAPPER_EXTENSION = octest;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -385,6 +534,15 @@
 			buildConfigurations = (
 				1DEB91B208733DA50010E9CD /* Debug */,
 				1DEB91B308733DA50010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C87C4C171055F432006F85E0 /* Build configuration list for PBXNativeTarget "DatabaseKitTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C87C4C101055F424006F85E0 /* Debug */,
+				C87C4C111055F424006F85E0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -8,11 +8,55 @@
 
 #import "NSString+Database.h"
 
-@implementation NSString (DKDatabase)
+@implementation NSString (DatabaseKit)
 
-- (NSString *)stringByEscapingStringForDatabaseQuery
+- (NSString *)stringByEscapingStringForLiteralUseInSQLQueries
 {
-	return [self stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+	NSMutableString *cleansedString = [NSMutableString stringWithString:self];
+	
+	//
+	//	We prepend Z_ to the ourselves in the event this string corresponds to an SQL keyword.
+	//
+	[cleansedString insertString:@"Z_" atIndex:0];
+	
+	//
+	//	Replace whitespace, single quotes, and double quotes with an underscore.
+	//	This is done to prevent potential SQL injection.
+	//
+	[cleansedString replaceOccurrencesOfString:@" " 
+									withString:@"_" 
+									   options:0 
+										 range:NSMakeRange(0, [cleansedString length])];
+	[cleansedString replaceOccurrencesOfString:@"\t" 
+									withString:@"_" 
+									   options:0 
+										 range:NSMakeRange(0, [cleansedString length])];
+	[cleansedString replaceOccurrencesOfString:@"\n" 
+									withString:@"_" 
+									   options:0 
+										 range:NSMakeRange(0, [cleansedString length])];
+	[cleansedString replaceOccurrencesOfString:@"\r" 
+									withString:@"_" 
+									   options:0 
+										 range:NSMakeRange(0, [cleansedString length])];
+	[cleansedString replaceOccurrencesOfString:@"'" 
+									withString:@"_" 
+									   options:0 
+										 range:NSMakeRange(0, [cleansedString length])];
+	[cleansedString replaceOccurrencesOfString:@"(" 
+									withString:@"_" 
+									   options:0 
+										 range:NSMakeRange(0, [cleansedString length])];
+	[cleansedString replaceOccurrencesOfString:@")" 
+									withString:@"_" 
+									   options:0 
+										 range:NSMakeRange(0, [cleansedString length])];
+	[cleansedString replaceOccurrencesOfString:@"\"" 
+									withString:@"_" 
+									   options:0 
+										 range:NSMakeRange(0, [cleansedString length])];
+	
+	return cleansedString;
 }
 
 @end

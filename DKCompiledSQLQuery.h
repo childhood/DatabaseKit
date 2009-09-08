@@ -27,31 +27,31 @@
 #pragma mark -
 #pragma mark Column Accessor/Mutators
 
-- (void)nullifyColumnAtIndex:(int)columnIndex;
+- (void)nullifyParameterAtIndex:(int)columnIndex;
 
 #pragma mark -
 
-- (void)setString:(NSString *)string forColumnAtIndex:(int)columnIndex;
+- (void)setString:(NSString *)string forParameterAtIndex:(int)index;
 - (NSString *)stringForColumnAtIndex:(int)columnIndex;
 
-- (void)setDate:(NSDate *)date forColumnAtIndex:(int)columnIndex;
+- (void)setDate:(NSDate *)date forParameterAtIndex:(int)index;
 - (NSDate *)dateForColumnAtIndex:(int)columnIndex;
 
 #pragma mark -
 
-- (void)setInt:(int)value forColumnAtIndex:(int)columnIndex;
+- (void)setInt:(int)value forParameterAtIndex:(int)index;
 - (int)intForColumnAtIndex:(int)columnIndex;
 
-- (void)setLongLong:(long long)value forColumnAtIndex:(int)columnIndex;
+- (void)setLongLong:(long long)value forParameterAtIndex:(int)index;
 - (long long)longLongForColumnAtIndex:(int)columnIndex;
 
-- (void)setDouble:(double)value forColumnAtIndex:(int)columnIndex;
+- (void)setDouble:(double)value forParameterAtIndex:(int)index;
 - (double)doubleForColumnAtIndex:(int)columnIndex;
 #pragma mark -
 
-- (void)setData:(NSData *)data forColumnAtIndex:(int)columnIndex;
+- (void)setData:(NSData *)data forParameterAtIndex:(int)index;
 - (NSData *)dataForColumnAtIndex:(int)columnIndex;
 
-- (void)setObject:(id)object forColumnAtIndex:(int)columnIndex;
+- (void)setObject:(id)object forParameterAtIndex:(int)index;
 - (id)objectForColumnAtIndex:(int)columnIndex;
 @end

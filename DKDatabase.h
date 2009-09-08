@@ -22,6 +22,7 @@
 @package
 	/* owner */	sqlite3 *mSQLiteConnection;
 	/* owner */	id < DKDatabaseLayout > mDatabaseLayout;
+	/* owner */	NSURL *mLocation;
 }
 /*!
  @method
@@ -39,6 +40,13 @@
  @abstract	An object representing the layout of the database.
  */
 @property (readonly) id < DKDatabaseLayout > databaseLayout;
+
+/*!
+ @property
+ @abstract		The location of the database.
+ @discussion	This property will be nil if the database is transient.
+ */
+@property (readonly) NSURL *location;
 
 #pragma mark -
 #pragma mark Database Interaction

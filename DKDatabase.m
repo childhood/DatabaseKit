@@ -27,6 +27,7 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 
 @synthesize sqliteConnection = mSQLiteConnection;
 @synthesize databaseLayout = mDatabaseLayout;
+@synthesize location = mLocation;
 
 #pragma mark -
 #pragma mark Destruction
@@ -55,6 +56,9 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 	[mDatabaseLayout release];
 	mDatabaseLayout = nil;
 	
+	[mLocation release];
+	mLocation = nil;
+	
 	[super dealloc];
 }
 
@@ -70,22 +74,38 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 //! @abstract	Simply raises.
 - (id)init
 {
-	NSAssert(NO, @"Attempting to initialize a DKDatabase with `init`. Use initWithDatabaseAtURL:layout:error: instead.");
+	[NSException raise:NSInvalidArgumentException format:@"Attempting to initialize a DKDatabase with init. Use initWithDatabaseAtURL:layout:error: instead."];
+	
 	return nil;
 }
 
 - (id)initWithDatabaseAtURL:(NSURL *)location layout:(id < DKDatabaseLayout >)layout error:(NSError **)error
 {
 	NSParameterAssert(layout);
+	if(location)
+		NSAssert([location isFileURL], @"Non-file URL %@ given.", location);
 	
 	if((self = [super init]))
 	{
-		int status = SQLITE_OK;
+		SQLiteStatus status = SQLITE_OK;
 		if(location)
-			status = sqlite3_open([[location path] UTF8String], &mSQLiteConnection);
+		{
+			NSString *path = [location path];
+			
+			//
+			//	If the path has a : prefix, we prepend ./ to it so that
+			//	it doesn't end up invoking a special function in sqlite.
+			//
+			if([path hasPrefix:@":"])
+				path = [@"./" stringByAppendingString:path];
+			
+			status = sqlite3_open([path fileSystemRepresentation], &mSQLiteConnection);
+		}
 		else
+		{
 			//If we're given a nil location we create the database in memory.
 			status = sqlite3_open(":memory:", &mSQLiteConnection);
+		}
 		
 		if(status != SQLITE_OK)
 		{
@@ -107,6 +127,7 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 		}
 		
 		mDatabaseLayout = [layout retain];
+		mLocation = [location retain];
 		
 		return self;
 	}
@@ -118,7 +139,7 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 
 - (BOOL)tableExistsWithName:(NSString *)name
 {
-	NSString *query = [NSString stringWithFormat:@"PRAGMA table_info(%@)", [name stringByEscapingStringForDatabaseQuery]];
+	NSString *query = [NSString stringWithFormat:@"PRAGMA table_info(%@)", [name stringByEscapingStringForLiteralUseInSQLQueries]];
 	
 	sqlite3_stmt *compiledSQLStatement = NULL;
 	if(sqlite3_prepare_v2(mSQLiteConnection, [query UTF8String], -1, &compiledSQLStatement, NULL) == SQLITE_OK)
@@ -136,23 +157,16 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 
 - (double)databaseVersion
 {
+	NSError *error = nil;
 	double version = 0.0;
 	if([self tableExistsWithName:kDKDatabaseConfigurationTableName])
 	{
-		NSString *query = [NSString stringWithFormat:@"SELECT databaseVersion FROM %@", kDKDatabaseConfigurationTableName];
+		NSString *selectDatabaseVersionQueryString = [NSString stringWithFormat:@"SELECT databaseVersion FROM %@", kDKDatabaseConfigurationTableName];
+		DKCompiledSQLQuery *selectDatabaseVersionQuery = [self compileSQLQuery:selectDatabaseVersionQueryString error:&error];
+		NSAssert((selectDatabaseVersionQuery && [selectDatabaseVersionQuery nextRow]),
+				 @"Could not find database version. Got error %@.", error);
 		
-		sqlite3_stmt *compiledSQLStatement = NULL;
-		if(sqlite3_prepare_v2(mSQLiteConnection, [query UTF8String], -1, &compiledSQLStatement, NULL) == SQLITE_OK)
-		{
-			//Step to the first and only row.
-			int status = sqlite3_step(compiledSQLStatement);
-			if(status == SQLITE_ROW)
-				version = sqlite3_column_double(compiledSQLStatement, 0);
-			else
-				NSLog(@"*** DatabaseKit: Could not look up version for database. Error %d %s.", status, sqlite3_errmsg(mSQLiteConnection));
-			
-			sqlite3_finalize(compiledSQLStatement);
-		}
+		version = [selectDatabaseVersionQuery doubleForColumnAtIndex:0];
 	}
 	
 	return version;
@@ -164,6 +178,8 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 {
 	NSParameterAssert(table);
 	
+	NSString *escapedTableName = [table.name stringByEscapingStringForLiteralUseInSQLQueries];
+	
 	//
 	//	We create an SQL SELECT query based on the passed in partial query.
 	//	If there is no partial query, we just select everything thats in
@@ -171,9 +187,9 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 	//
 	NSString *selectQueryString = nil;
 	if(query)
-		selectQueryString = [NSString stringWithFormat:@"SELECT _dk_uniqueIdentifier FROM %@ WHERE %@", table.name, query];
+		selectQueryString = [NSString stringWithFormat:@"SELECT _dk_uniqueIdentifier FROM %@ WHERE %@", escapedTableName, query];
 	else
-		selectQueryString = [NSString stringWithFormat:@"SELECT _dk_uniqueIdentifier FROM %@", table.name];
+		selectQueryString = [NSString stringWithFormat:@"SELECT _dk_uniqueIdentifier FROM %@", escapedTableName];
 	
 	//Execute the select query.
 	DKCompiledSQLQuery *selectQuery = [self compileSQLQuery:selectQueryString error:error];
@@ -245,14 +261,14 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 	NSError *transientError = nil;
 	
 	//The table name could very well contain single quotes so we escape it.
-	NSString *escapedTableName = [table.name stringByEscapingStringForDatabaseQuery];
+	NSString *escapedTableName = [table.name stringByEscapingStringForLiteralUseInSQLQueries];
 	
 	//
 	//	First things first, we need to fetch the last unique identifier from
 	//	the database's internal sequence table. We use this to calculate the new
 	//	unique identifier for the object we're about to insert.
 	//
-	NSString *selectOffsetQueryString = [NSString stringWithFormat:@"SELECT offset FROM %@ WHERE name='%@'", kDKDatabaseSequenceTableName, table.name];
+	NSString *selectOffsetQueryString = [NSString stringWithFormat:@"SELECT offset FROM %@ WHERE name='%@'", kDKDatabaseSequenceTableName, escapedTableName];
 	DKCompiledSQLQuery *selectOffsetQuery = [self compileSQLQuery:selectOffsetQueryString error:&transientError];
 	if(!selectOffsetQuery)
 		return nil;
@@ -287,7 +303,7 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 	NSAssert([insertNewRowQuery evaluateAndReturnError:&transientError], 
 			 @"Could not create new row for table named %@. Got error %@.", table.name, transientError);
 	
-	NSString *updateLastUniqueIdentifierQueryString = [NSString stringWithFormat:@"UPDATE %@ SET offset=%lld WHERE name='%@'", kDKDatabaseSequenceTableName, newUniqueIdentifier, table.name];
+	NSString *updateLastUniqueIdentifierQueryString = [NSString stringWithFormat:@"UPDATE %@ SET offset=%lld WHERE name='%@'", kDKDatabaseSequenceTableName, newUniqueIdentifier, escapedTableName];
 	NSAssert([self executeSQLQuery:updateLastUniqueIdentifierQueryString error:&transientError],
 			 @"Could not update unique identifier in DKDatabase internal state. Got error %@.", transientError);
 	//
@@ -348,7 +364,7 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 
 - (BOOL)_createTableWithDescription:(DKTableDescription *)tableDescription error:(NSError **)error
 {
-	NSString *escapedTableName = [tableDescription.name stringByEscapingStringForDatabaseQuery];
+	NSString *escapedTableName = [tableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
 	
 	//
 	//	Create the base query. All tables created by DatabaseKit have
@@ -369,7 +385,7 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 			//	Look up the SQLite type for the high level type we're passed in
 			//	and append the base of this type.
 			//
-			[createTableQueryString appendFormat:@", %@ %@", attribute.name, DKAttributeTypeToSQLiteType(attributeType)];
+			[createTableQueryString appendFormat:@", %@ %@", [attribute.name stringByEscapingStringForLiteralUseInSQLQueries], DKAttributeTypeToSQLiteType(attributeType)];
 			
 			
 			//
@@ -388,7 +404,7 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 			{
 				if(attributeType == DKAttributeTypeString)
 				{
-					[createTableQueryString appendFormat:@" DEFAULT('%@')", [defaultValue stringByEscapingStringForDatabaseQuery]];
+					[createTableQueryString appendFormat:@" DEFAULT('%@')", [defaultValue stringByReplacingOccurrencesOfString:@"'" withString:@"''"]];
 				}
 				else if(attributeType == DKAttributeTypeFloat)
 				{
@@ -459,7 +475,7 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 	//
 	for (DKTableDescription *table in [layout tables])
 	{
-		NSString *tableName = [table.name stringByEscapingStringForDatabaseQuery];
+		NSString *tableName = [table.name stringByEscapingStringForLiteralUseInSQLQueries];
 		BOOL tableExisted = [self tableExistsWithName:tableName];
 		
 		if(![self _createTableWithDescription:table error:error])

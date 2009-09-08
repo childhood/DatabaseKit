@@ -8,9 +8,12 @@
 
 #import <Cocoa/Cocoa.h>
 
+@interface NSString (DatabaseKit)
 
-@interface NSString (DKDatabase)
-
-- (NSString *)stringByEscapingStringForDatabaseQuery;
+/*!
+ @method
+ @abstract	Cleanse the receiver of any characters that might interfere with its use as a literal in an SQL query.
+ */
+- (NSString *)stringByEscapingStringForLiteralUseInSQLQueries;
 
 @end

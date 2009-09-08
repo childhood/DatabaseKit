@@ -94,58 +94,58 @@
 #pragma mark -
 #pragma mark Column Accessor/Mutators
 
-- (void)nullifyColumnAtIndex:(int)columnIndex
+- (void)nullifyParameterAtIndex:(int)index
 {
-	SQLiteStatus status = sqlite3_bind_null(mSQLStatement, columnIndex);
+	SQLiteStatus status = sqlite3_bind_null(mSQLStatement, index);
 	
 	NSAssert((status == SQLITE_OK), 
-			 @"Remove value for column %d. Got error %d \"%s\".", columnIndex, status, sqlite3_errmsg(mSQLConnection));
+			 @"Remove value for column %d. Got error %d \"%s\".", index, status, sqlite3_errmsg(mSQLConnection));
 }
 
 #pragma mark -
 
-- (void)setString:(NSString *)string forColumnAtIndex:(int)columnIndex
+- (void)setString:(NSString *)string forParameterAtIndex:(int)index
 {
 	NSParameterAssert(string);
 	
 	SQLiteStatus status = sqlite3_bind_text(mSQLStatement, //in statement
-											columnIndex, //in columnIndex
+											index, //in index
 											[string UTF8String], //in stringData
 											[string lengthOfBytesUsingEncoding:NSUTF8StringEncoding], //in stringDataLength
 											SQLITE_STATIC); //in dataDestructor
 	
 	NSAssert((status == SQLITE_OK), 
-			 @"Could not set string for column %d. Got error %d \"%s\".", columnIndex, status, sqlite3_errmsg(mSQLConnection));
+			 @"Could not set string for column %d. Got error %d \"%s\".", index, status, sqlite3_errmsg(mSQLConnection));
 }
 
-- (NSString *)stringForColumnAtIndex:(int)columnIndex
+- (NSString *)stringForColumnAtIndex:(int)index
 {
-	const char *cStringData = (const char *)sqlite3_column_text(mSQLStatement, columnIndex);
+	const char *cStringData = (const char *)sqlite3_column_text(mSQLStatement, index);
 	if(cStringData)
 		return [NSString stringWithUTF8String:cStringData];
 	
 	return nil;
 }
 
-- (void)setDate:(NSDate *)date forColumnAtIndex:(int)columnIndex
+- (void)setDate:(NSDate *)date forParameterAtIndex:(int)index
 {
 	NSParameterAssert(date);
 	
 	//The DATETIME type expects values to be in the form of YY-MM-DD HH:MM:SS.MMM.
 	NSString *dateString = [date descriptionWithCalendarFormat:@"%Y-%m-%d %H:%M:%S.%F" timeZone:nil locale:nil];
 	SQLiteStatus status = sqlite3_bind_text(mSQLStatement, //in statement
-											columnIndex, //in columnIndex
+											index, //in index
 											[dateString UTF8String], //in stringData
 											[dateString lengthOfBytesUsingEncoding:NSUTF8StringEncoding], //in stringDataLength
 											SQLITE_STATIC); //in dataDestructor
 	
 	NSAssert((status == SQLITE_OK), 
-			 @"Could not set date for column %d. Got error %d \"%s\".", columnIndex, status, sqlite3_errmsg(mSQLConnection));
+			 @"Could not set date for column %d. Got error %d \"%s\".", index, status, sqlite3_errmsg(mSQLConnection));
 }
 
-- (NSDate *)dateForColumnAtIndex:(int)columnIndex
+- (NSDate *)dateForColumnAtIndex:(int)index
 {
-	const char *cStringData = (const char *)sqlite3_column_text(mSQLStatement, columnIndex);
+	const char *cStringData = (const char *)sqlite3_column_text(mSQLStatement, index);
 	if(cStringData)
 	{
 		NSString *dateString = [NSString stringWithUTF8String:cStringData];
@@ -157,87 +157,87 @@
 
 #pragma mark -
 
-- (void)setInt:(int)value forColumnAtIndex:(int)columnIndex
+- (void)setInt:(int)value forParameterAtIndex:(int)index
 {
 	SQLiteStatus status = sqlite3_bind_int(mSQLStatement, //in statement
-										   columnIndex, //in columnIndex
+										   index, //in index
 										   value); //in value
 	
 	NSAssert((status == SQLITE_OK), 
-			 @"Could not set int for column %d. Got error %d \"%s\".", columnIndex, status, sqlite3_errmsg(mSQLConnection));
+			 @"Could not set int for column %d. Got error %d \"%s\".", index, status, sqlite3_errmsg(mSQLConnection));
 }
 
-- (int)intForColumnAtIndex:(int)columnIndex
+- (int)intForColumnAtIndex:(int)index
 {
-	return sqlite3_column_int(mSQLStatement, columnIndex);
+	return sqlite3_column_int(mSQLStatement, index);
 }
 
-- (void)setLongLong:(long long)value forColumnAtIndex:(int)columnIndex
+- (void)setLongLong:(long long)value forParameterAtIndex:(int)index
 {
 	SQLiteStatus status = sqlite3_bind_int64(mSQLStatement, //in statement
-											 columnIndex, //in columnIndex
+											 index, //in index
 											 value); //in value
 	
 	NSAssert((status == SQLITE_OK), 
-			 @"Could not set long long for column %d. Got error %d \"%s\".", columnIndex, status, sqlite3_errmsg(mSQLConnection));
+			 @"Could not set long long for column %d. Got error %d \"%s\".", index, status, sqlite3_errmsg(mSQLConnection));
 }
 
-- (long long)longLongForColumnAtIndex:(int)columnIndex
+- (long long)longLongForColumnAtIndex:(int)index
 {
-	return sqlite3_column_int64(mSQLStatement, columnIndex);
+	return sqlite3_column_int64(mSQLStatement, index);
 }
 
-- (void)setDouble:(double)value forColumnAtIndex:(int)columnIndex
+- (void)setDouble:(double)value forParameterAtIndex:(int)index
 {
 	SQLiteStatus status = sqlite3_bind_double(mSQLStatement, //in statement
-											  columnIndex, //in columnIndex
+											  index, //in index
 											  value); //in value
 	
 	NSAssert((status == SQLITE_OK), 
-			 @"Could not set double for column %d. Got error %d \"%s\".", columnIndex, status, sqlite3_errmsg(mSQLConnection));
+			 @"Could not set double for column %d. Got error %d \"%s\".", index, status, sqlite3_errmsg(mSQLConnection));
 }
 
-- (double)doubleForColumnAtIndex:(int)columnIndex
+- (double)doubleForColumnAtIndex:(int)index
 {
-	return sqlite3_column_double(mSQLStatement, columnIndex);
+	return sqlite3_column_double(mSQLStatement, index);
 }
 
 #pragma mark -
 
-- (void)setData:(NSData *)data forColumnAtIndex:(int)columnIndex
+- (void)setData:(NSData *)data forParameterAtIndex:(int)index
 {
 	NSParameterAssert(data);
 	
 	SQLiteStatus status = sqlite3_bind_blob(mSQLStatement, //in statement
-											columnIndex, //in columnIndex
+											index, //in index
 											[data bytes], //in blobBytes
 											[data length], //in blobLength
 											SQLITE_STATIC); //in dataDestructor
 	
 	NSAssert((status == SQLITE_OK), 
-			 @"Could not set data for column %d. Got error %d \"%s\".", columnIndex, status, sqlite3_errmsg(mSQLConnection));
+			 @"Could not set data for column %d. Got error %d \"%s\".", index, status, sqlite3_errmsg(mSQLConnection));
 }
 
-- (NSData *)dataForColumnAtIndex:(int)columnIndex
+- (NSData *)dataForColumnAtIndex:(int)index
 {
-	const void *blobBytes = sqlite3_column_blob(mSQLStatement, columnIndex);
-	int lengthOfBlob = sqlite3_column_bytes(mSQLStatement, columnIndex);
+	const void *blobBytes = sqlite3_column_blob(mSQLStatement, index);
+	int lengthOfBlob = sqlite3_column_bytes(mSQLStatement, index);
 	if(!blobBytes || (lengthOfBlob == 0))
 		return [NSData data];
 	
 	return [NSData dataWithBytes:blobBytes length:lengthOfBlob];
 }
 
-- (void)setObject:(id)object forColumnAtIndex:(int)columnIndex
+- (void)setObject:(id)object forParameterAtIndex:(int)index
 {
 	NSParameterAssert(object);
 	
-	[self setData:[NSKeyedArchiver archivedDataWithRootObject:object] forColumnAtIndex:columnIndex];
+	[self setData:[NSKeyedArchiver archivedDataWithRootObject:object] forParameterAtIndex:index];
 }
 
-- (id)objectForColumnAtIndex:(int)columnIndex
+- (id)objectForColumnAtIndex:(int)index
 {
-	return [NSKeyedUnarchiver unarchiveObjectWithData:[self dataForColumnAtIndex:columnIndex]];
+	return [NSKeyedUnarchiver unarchiveObjectWithData:[self dataForColumnAtIndex:index]];
 }
 
 @end

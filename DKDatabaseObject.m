@@ -129,9 +129,9 @@
 	DKAttributeDescription *attributeDescription = (DKAttributeDescription *)property;
 	
 	
-	//We escape the attribute name because it might contain ticks. That would be bad.
-	NSString *escapedAttributeName = [attributeDescription.name stringByEscapingStringForDatabaseQuery];
-	
+	//We escape these values to prevent SQL injection.
+	NSString *escapedAttributeName = [key stringByEscapingStringForLiteralUseInSQLQueries];
+	NSString *escapedTableName = [mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
 	
 	//
 	//	We create an SQL UPDATE query to update the value associated with `key`.
@@ -140,7 +140,7 @@
 	//	Note that we use a ? so we don't have to escape the value. We set it directly
 	//	in the switch statement below.
 	//
-	NSString *updateQueryString = [NSString stringWithFormat:@"UPDATE %@ SET '%@' = ? WHERE _dk_uniqueIdentifier=%lld", mTableDescription.name, escapedAttributeName, mUniqueIdentifier];
+	NSString *updateQueryString = [NSString stringWithFormat:@"UPDATE %@ SET '%@' = ? WHERE _dk_uniqueIdentifier=%lld", escapedTableName, escapedAttributeName, mUniqueIdentifier];
 	
 	//Evaluate the update query.
 	DKCompiledSQLQuery *updateQuery = [mDatabase compileSQLQuery:updateQueryString error:&error];
@@ -157,44 +157,44 @@
 		switch (attributeDescription.type)
 		{
 			case DKAttributeTypeString:
-				[updateQuery setString:value forColumnAtIndex:1];
+				[updateQuery setString:value forParameterAtIndex:1];
 				break;
 				
 			case DKAttributeTypeDate:
-				[updateQuery setDate:value forColumnAtIndex:1];
+				[updateQuery setDate:value forParameterAtIndex:1];
 				break;
 				
 			case DKAttributeTypeInt8:
 			case DKAttributeTypeInt16:
 			case DKAttributeTypeInt32:
-				[updateQuery setInt:[value intValue] forColumnAtIndex:1];
+				[updateQuery setInt:[value intValue] forParameterAtIndex:1];
 				break;
 				
 			case DKAttributeTypeInt64:
-				[updateQuery setLongLong:[value longLongValue] forColumnAtIndex:1];
+				[updateQuery setLongLong:[value longLongValue] forParameterAtIndex:1];
 				break;
 				
 			case DKAttributeTypeFloat:
-				[updateQuery setDouble:[value doubleValue] forColumnAtIndex:1];
+				[updateQuery setDouble:[value doubleValue] forParameterAtIndex:1];
 				break;
 				
 			case DKAttributeTypeData:
-				[updateQuery setData:value forColumnAtIndex:1];
+				[updateQuery setData:value forParameterAtIndex:1];
 				break;
 				
 			case DKAttributeTypeObject:
-				[updateQuery setObject:value forColumnAtIndex:1];
+				[updateQuery setObject:value forParameterAtIndex:1];
 				break;
 				
 			default:
 				//This should never happen, but if it does we just write null.
-				[updateQuery nullifyColumnAtIndex:1];
+				[updateQuery nullifyParameterAtIndex:1];
 				break;
 		}
 	}
 	else
 	{
-		[updateQuery nullifyColumnAtIndex:1];
+		[updateQuery nullifyParameterAtIndex:1];
 	}
 	
 	
@@ -245,15 +245,15 @@
 	
 	DKAttributeDescription *attributeDescription = (DKAttributeDescription *)property;
 	
-	//We escape the attribute name because it might contain ticks. That would be bad.
-	NSString *escapedAttributeName = [property.name stringByEscapingStringForDatabaseQuery];
-	
+	//We escape these values to prevent SQL injection.
+	NSString *escapedAttributeName = [key stringByEscapingStringForLiteralUseInSQLQueries];
+	NSString *escapedTableName = [mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
 	
 	//
 	//	We create an SQL SELECT query to find the value specified by `key` in
 	//	our row in the database. We find ourselves using our unique identifier.
 	//
-	NSString *selectQueryString = [NSString stringWithFormat:@"SELECT %@ FROM %@ WHERE(_dk_uniqueIdentifier=%lld)", escapedAttributeName, mTableDescription.name, mUniqueIdentifier];
+	NSString *selectQueryString = [NSString stringWithFormat:@"SELECT %@ FROM %@ WHERE(_dk_uniqueIdentifier=%lld)", escapedAttributeName, escapedTableName, mUniqueIdentifier];
 	
 	
 	//Evaluate the update query.
