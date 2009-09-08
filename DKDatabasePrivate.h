@@ -30,7 +30,7 @@ DK_EXTERN NSString *const kDKDatabaseSequenceTableName;
  @abstract		The SQLite handle of the database.
  @discussion	Direct interaction with this value is discouraged. Use a transaction whenever possible.
  */
-@property (readonly) sqlite3 *sqliteHandle;
+@property (readonly) sqlite3 *sqliteConnection;
 
 
 /*!
@@ -46,11 +46,16 @@ DK_EXTERN NSString *const kDKDatabaseSequenceTableName;
 /*!
  @method
  @abstract	Fetch an unordered set of promise-database-objects from a specified table matching a specified query in the receiver.
- @param		table	The table to look up the database objects in. May not be nil.
- @param		query	The filter query to apply when looking up the values. May be nil.
- @param		error	If the query fails, on return this will contain an error. May be nil.
+ @param		table
+				The table to look up the database objects in. May not be nil.
+ @param		query
+				The filter query to apply when looking up the values. May be nil.
+ @param		returnsObjectsAsPromises
+				If set to YES then the objects returned will have all of their properties precached.
+ @param		error
+				If the query fails, on return this will contain an error. May be nil.
  @result	An unordered set of objects if the fetch succeeds; nil otherwise.
  */
-- (NSSet *)fetchObjectsInTable:(DKTableDescription *)table matchingQuery:(NSString *)query error:(NSError **)error;
+- (NSSet *)fetchObjectsInTable:(DKTableDescription *)table matchingQuery:(NSString *)query returnsObjectsAsPromises:(BOOL)returnsObjectsAsPromises error:(NSError **)error;
 
 @end

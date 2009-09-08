@@ -10,12 +10,7 @@
 
 @implementation DKFetchRequest
 
-@synthesize table;
-@synthesize filterString;
-@synthesize predicate;
-@synthesize sortDescriptors;
-
-#pragma mark -
+#pragma mark Destruction
 
 - (void)dealloc
 {
@@ -27,6 +22,9 @@
 	[super dealloc];
 }
 
+#pragma mark -
+#pragma mark Construction
+
 + (DKFetchRequest *)fetchRequestWithTable:(DKTableDescription *)table
 {
 	DKFetchRequest *request = [[DKFetchRequest new] autorelease];
@@ -35,5 +33,25 @@
 	
 	return request;
 }
+
+- (id)init
+{
+	if((self = [super init]))
+	{
+		returnsObjectsAsPromises = YES;
+		
+		return self;
+	}
+	return nil;
+}
+
+#pragma mark -
+#pragma mark Properties
+
+@synthesize table;
+@synthesize filterString;
+@synthesize predicate;
+@synthesize sortDescriptors;
+@synthesize returnsObjectsAsPromises;
 
 @end

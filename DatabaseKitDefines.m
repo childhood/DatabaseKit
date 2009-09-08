@@ -11,6 +11,8 @@
 #import <stdarg.h>
 
 NSString *const DKGeneralErrorDomain = @"DKGeneralErrorDomain";
+NSString *const DKInitializationErrorDomain = @"DKInitializationErrorDomain";
+NSString *const DKEvaluationErrorDomain = @"DKEvaluationErrorDomain";
 
 NSError *DKLocalizedError(NSString *domain, NSInteger code, NSDictionary *userInfo, NSString *key, ...)
 {

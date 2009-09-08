@@ -11,7 +11,7 @@
 #import <dispatch/dispatch.h>
 
 @protocol DKDatabaseLayout;
-@class DKFetchRequest, DKTransaction, DKTableDescription;
+@class DKFetchRequest, DKCompiledSQLQuery, DKTableDescription;
 
 /*!
  @method
@@ -20,9 +20,8 @@
 @interface DKDatabase : NSObject
 {
 @package
-	/* owner */	sqlite3 *mSQLiteHandle;
+	/* owner */	sqlite3 *mSQLiteConnection;
 	/* owner */	id < DKDatabaseLayout > mDatabaseLayout;
-	/* owner */	NSOperationQueue *mTransactionQueue;
 }
 /*!
  @method
@@ -52,14 +51,27 @@
  */
 - (BOOL)tableExistsWithName:(NSString *)name;
 
+#pragma mark -
+
 /*!
  @method
- @abstract		Begin a transaction with a handler block.
- @param			handler		The block to invoke when a transaction is ready for use. May not be nil.
- @discussion	All operations on the database must be sent through this method.
-				The handler block passed into this method is executed in a thread safe, exception safe context.
+ @abstract		Compile an SQL query for use with the receiver's SQLite connection.
+ @param			query	The SQL query to compile. May not be nil.
+ @param			error	If the query cannot be compiled this will contain an error. May be nil.
+ @result		nil if an error occurs; a new autoreleased compiled SQL query.
+ @discussion	This method should only be executed from within the context of a transaction.
  */
-- (void)transaction:(void(^)(DKTransaction *transaction))handler;
+- (DKCompiledSQLQuery *)compileSQLQuery:(NSString *)query error:(NSError **)error;
+
+/*!
+ @method
+ @abstract		Execute an SQL query on the receiver's SQLite connection.
+ @param			query	The SQL query to execute. May not be nil.
+ @param			error	If the query fails, this will contain an error on return. May be nil.
+ @result		YES if the query could be executed; NO otherwise.
+ @discussion	This method should only be executed from within the context of a transaction.
+ */
+- (BOOL)executeSQLQuery:(NSString *)query error:(NSError **)error;
 
 #pragma mark -
 
@@ -78,9 +90,10 @@
  @method
  @abstract		Insert a new object into a specified table returning the object.
  @param			table	The table to insert the new database object into. May not be nil.
+ @param			error	If the insertion fails, this will contain an error. May be nil.
  @result		A new database object inserted into the specified table if successful; nil otherwise.
  @discussion	The value returned by this method is not autoreleased.
  */
-- (id)insertNewObjectIntoTable:(DKTableDescription *)table;
+- (id)insertNewObjectIntoTable:(DKTableDescription *)table error:(NSError **)error;
 
 @end

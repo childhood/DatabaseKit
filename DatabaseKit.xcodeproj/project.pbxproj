@@ -9,7 +9,8 @@
 /* Begin PBXBuildFile section */
 		8DC2EF530486A6940098B216 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C1666FE841158C02AAC07 /* InfoPlist.strings */; };
 		8DC2EF570486A6940098B216 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7B1FEA5585E11CA2CBB /* Cocoa.framework */; };
-		C898AE831052EADB001E3E82 /* DKTransactionPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = C898AE821052EADB001E3E82 /* DKTransactionPrivate.h */; };
+		C87C49511055D1EC006F85E0 /* DKCompiledSQLQuery.h in Headers */ = {isa = PBXBuildFile; fileRef = C87C494F1055D1EC006F85E0 /* DKCompiledSQLQuery.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		C87C49521055D1EC006F85E0 /* DKCompiledSQLQuery.m in Sources */ = {isa = PBXBuildFile; fileRef = C87C49501055D1EC006F85E0 /* DKCompiledSQLQuery.m */; };
 		C898AE901052EB73001E3E82 /* DKDatabaseObjectPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = C898AE8F1052EB73001E3E82 /* DKDatabaseObjectPrivate.h */; };
 		C898AED91052F1EC001E3E82 /* DKDatabasePrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = C898AED81052F1EC001E3E82 /* DKDatabasePrivate.h */; };
 		C8B051E610504A0900E8FB20 /* DatabaseKit.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B051E510504A0900E8FB20 /* DatabaseKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -21,8 +22,6 @@
 		C8B052701050860900E8FB20 /* DatabaseKitDefines.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B0526E1050860900E8FB20 /* DatabaseKitDefines.m */; };
 		C8B052B910508ABB00E8FB20 /* DKDatabaseLayout.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B052B710508ABB00E8FB20 /* DKDatabaseLayout.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C8B052BA10508ABB00E8FB20 /* DKDatabaseLayout.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B052B810508ABB00E8FB20 /* DKDatabaseLayout.m */; };
-		C8B05311105094D200E8FB20 /* DKTransaction.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B0530F105094D200E8FB20 /* DKTransaction.h */; };
-		C8B05312105094D200E8FB20 /* DKTransaction.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B05310105094D200E8FB20 /* DKTransaction.m */; };
 		C8B0FA9810516A7C0020F5BC /* DKFetchRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B0FA9610516A7C0020F5BC /* DKFetchRequest.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C8B0FA9910516A7C0020F5BC /* DKFetchRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = C8B0FA9710516A7C0020F5BC /* DKFetchRequest.m */; };
 		C8B0FA9C10516A830020F5BC /* DKDatabaseObject.h in Headers */ = {isa = PBXBuildFile; fileRef = C8B0FA9A10516A830020F5BC /* DKDatabaseObject.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -54,7 +53,8 @@
 		32DBCF5E0370ADEE00C91783 /* DatabaseKit_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DatabaseKit_Prefix.pch; sourceTree = "<group>"; };
 		8DC2EF5A0486A6940098B216 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8DC2EF5B0486A6940098B216 /* DatabaseKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DatabaseKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		C898AE821052EADB001E3E82 /* DKTransactionPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKTransactionPrivate.h; sourceTree = "<group>"; };
+		C87C494F1055D1EC006F85E0 /* DKCompiledSQLQuery.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKCompiledSQLQuery.h; sourceTree = "<group>"; };
+		C87C49501055D1EC006F85E0 /* DKCompiledSQLQuery.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DKCompiledSQLQuery.m; sourceTree = "<group>"; };
 		C898AE8F1052EB73001E3E82 /* DKDatabaseObjectPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabaseObjectPrivate.h; sourceTree = "<group>"; };
 		C898AED81052F1EC001E3E82 /* DKDatabasePrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabasePrivate.h; sourceTree = "<group>"; };
 		C8B051E510504A0900E8FB20 /* DatabaseKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DatabaseKit.h; sourceTree = "<group>"; };
@@ -66,8 +66,6 @@
 		C8B0526E1050860900E8FB20 /* DatabaseKitDefines.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DatabaseKitDefines.m; sourceTree = "<group>"; };
 		C8B052B710508ABB00E8FB20 /* DKDatabaseLayout.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabaseLayout.h; sourceTree = "<group>"; };
 		C8B052B810508ABB00E8FB20 /* DKDatabaseLayout.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DKDatabaseLayout.m; sourceTree = "<group>"; };
-		C8B0530F105094D200E8FB20 /* DKTransaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKTransaction.h; sourceTree = "<group>"; };
-		C8B05310105094D200E8FB20 /* DKTransaction.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DKTransaction.m; sourceTree = "<group>"; };
 		C8B0FA9610516A7C0020F5BC /* DKFetchRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKFetchRequest.h; sourceTree = "<group>"; };
 		C8B0FA9710516A7C0020F5BC /* DKFetchRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DKFetchRequest.m; sourceTree = "<group>"; };
 		C8B0FA9A10516A830020F5BC /* DKDatabaseObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DKDatabaseObject.h; sourceTree = "<group>"; };
@@ -144,9 +142,6 @@
 				C8B052341050599000E8FB20 /* DKDatabase.m */,
 				C8B052B710508ABB00E8FB20 /* DKDatabaseLayout.h */,
 				C8B052B810508ABB00E8FB20 /* DKDatabaseLayout.m */,
-				C898AE821052EADB001E3E82 /* DKTransactionPrivate.h */,
-				C8B0530F105094D200E8FB20 /* DKTransaction.h */,
-				C8B05310105094D200E8FB20 /* DKTransaction.m */,
 				C8B0FA9610516A7C0020F5BC /* DKFetchRequest.h */,
 				C8B0FA9710516A7C0020F5BC /* DKFetchRequest.m */,
 				C8B0FACE10516D670020F5BC /* DKDatabaseObjectState.h */,
@@ -155,6 +150,8 @@
 				C8B0FAE410516E600020F5BC /* DKTableDescription.m */,
 				C8B0FC151052C0EC0020F5BC /* NSString+Database.h */,
 				C8B0FC161052C0EC0020F5BC /* NSString+Database.m */,
+				C87C494F1055D1EC006F85E0 /* DKCompiledSQLQuery.h */,
+				C87C49501055D1EC006F85E0 /* DKCompiledSQLQuery.m */,
 			);
 			name = Classes;
 			sourceTree = "<group>";
@@ -200,15 +197,14 @@
 				C8B052351050599000E8FB20 /* DKDatabase.h in Headers */,
 				C8B0526F1050860900E8FB20 /* DatabaseKitDefines.h in Headers */,
 				C8B052B910508ABB00E8FB20 /* DKDatabaseLayout.h in Headers */,
-				C8B05311105094D200E8FB20 /* DKTransaction.h in Headers */,
 				C8B0FA9810516A7C0020F5BC /* DKFetchRequest.h in Headers */,
 				C8B0FA9C10516A830020F5BC /* DKDatabaseObject.h in Headers */,
 				C8B0FAD010516D670020F5BC /* DKDatabaseObjectState.h in Headers */,
 				C8B0FAE510516E600020F5BC /* DKTableDescription.h in Headers */,
 				C8B0FC171052C0EC0020F5BC /* NSString+Database.h in Headers */,
-				C898AE831052EADB001E3E82 /* DKTransactionPrivate.h in Headers */,
 				C898AE901052EB73001E3E82 /* DKDatabaseObjectPrivate.h in Headers */,
 				C898AED91052F1EC001E3E82 /* DKDatabasePrivate.h in Headers */,
+				C87C49511055D1EC006F85E0 /* DKCompiledSQLQuery.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -276,12 +272,12 @@
 				C8B052361050599000E8FB20 /* DKDatabase.m in Sources */,
 				C8B052701050860900E8FB20 /* DatabaseKitDefines.m in Sources */,
 				C8B052BA10508ABB00E8FB20 /* DKDatabaseLayout.m in Sources */,
-				C8B05312105094D200E8FB20 /* DKTransaction.m in Sources */,
 				C8B0FA9910516A7C0020F5BC /* DKFetchRequest.m in Sources */,
 				C8B0FA9D10516A830020F5BC /* DKDatabaseObject.m in Sources */,
 				C8B0FAD110516D670020F5BC /* DKDatabaseObjectState.m in Sources */,
 				C8B0FAE610516E600020F5BC /* DKTableDescription.m in Sources */,
 				C8B0FC181052C0EC0020F5BC /* NSString+Database.m in Sources */,
+				C87C49521055D1EC006F85E0 /* DKCompiledSQLQuery.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

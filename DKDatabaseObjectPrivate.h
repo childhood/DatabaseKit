@@ -45,6 +45,13 @@
  */
 - (id)cachedValueForKey:(NSString *)key;
 
+/*!
+ @method
+ @abstract		Cache the values of all of the receiver's columns specified by its table description.
+ @discussion	This method is used to implement fetching of objects as non-promises.
+ */
+- (void)cacheAllColumnsInTable;
+
 #pragma mark -
 
 /*!

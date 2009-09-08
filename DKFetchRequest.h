@@ -15,14 +15,17 @@
 	NSString *filterString;
 	NSPredicate *predicate;
 	NSArray *sortDescriptors;
+	BOOL returnsObjectsAsPromises;
 }
 + (DKFetchRequest *)fetchRequestWithTable:(DKTableDescription *)table;
 
-@property (copy) DKTableDescription *table;
+@property (retain) DKTableDescription *table;
 
 @property (copy) NSString *filterString;
 
 @property (copy) NSPredicate *predicate;
 
 @property (retain) NSArray *sortDescriptors;
+
+@property BOOL returnsObjectsAsPromises;
 @end

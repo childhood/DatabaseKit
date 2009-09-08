@@ -27,11 +27,8 @@
 #pragma mark Errors
 
 DK_EXTERN NSString *const DKGeneralErrorDomain;
-
-enum _DKGeneralErrors {
-	/* Use the range -100 to -199 */
-	kDKGeneralErrorUnknown = (-1),
-};
+DK_EXTERN NSString *const DKInitializationErrorDomain;
+DK_EXTERN NSString *const DKEvaluationErrorDomain;
 
 /*!
  @function
@@ -43,5 +40,11 @@ enum _DKGeneralErrors {
  @result	A new autoreleased instance of NSError configured with the parameters passed in.
  */
 DK_EXTERN NSError *DKLocalizedError(NSString *domain, NSInteger code, NSDictionary *userInfo, NSString *key, ...);
+
+/*!
+ @typedef
+ @abstract	This type is used to make the use of return values from SQLite functions more clear.
+ */
+typedef int SQLiteStatus;
 
 #endif /* DatabaseKitDefines_h */
