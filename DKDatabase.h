@@ -48,6 +48,12 @@
  */
 @property (readonly) NSURL *location;
 
+/*!
+ @property
+ @abstract	The version of the database.
+ */
+@property (readonly) double databaseVersion;
+
 #pragma mark -
 #pragma mark Database Interaction
 

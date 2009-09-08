@@ -22,14 +22,10 @@
 
 NSString *const kDKDatabaseConfigurationTableName = @"_DKDatabaseConfiguration";
 NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
+NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipDescription";
 
 @implementation DKDatabase
 
-@synthesize sqliteConnection = mSQLiteConnection;
-@synthesize databaseLayout = mDatabaseLayout;
-@synthesize location = mLocation;
-
-#pragma mark -
 #pragma mark Destruction
 
 - (void)cleanUp
@@ -135,44 +131,37 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 }
 
 #pragma mark -
-#pragma mark Database Interaction
+#pragma mark Database Properties
 
-- (BOOL)tableExistsWithName:(NSString *)name
-{
-	NSString *query = [NSString stringWithFormat:@"PRAGMA table_info(%@)", [name stringByEscapingStringForLiteralUseInSQLQueries]];
-	
-	sqlite3_stmt *compiledSQLStatement = NULL;
-	if(sqlite3_prepare_v2(mSQLiteConnection, [query UTF8String], -1, &compiledSQLStatement, NULL) == SQLITE_OK)
-	{
-		BOOL success = (sqlite3_step(compiledSQLStatement) == SQLITE_ROW);
-		sqlite3_finalize(compiledSQLStatement);
-		
-		return success;
-	}
-	
-	return NO;
-}
+@synthesize sqliteConnection = mSQLiteConnection;
+@synthesize location = mLocation;
 
 #pragma mark -
 
+@synthesize databaseLayout = mDatabaseLayout;
+
+@dynamic databaseVersion;
 - (double)databaseVersion
 {
 	NSError *error = nil;
-	double version = 0.0;
-	if([self tableExistsWithName:kDKDatabaseConfigurationTableName])
-	{
-		NSString *selectDatabaseVersionQueryString = [NSString stringWithFormat:@"SELECT databaseVersion FROM %@", kDKDatabaseConfigurationTableName];
-		DKCompiledSQLQuery *selectDatabaseVersionQuery = [self compileSQLQuery:selectDatabaseVersionQueryString error:&error];
-		NSAssert((selectDatabaseVersionQuery && [selectDatabaseVersionQuery nextRow]),
-				 @"Could not find database version. Got error %@.", error);
-		
-		version = [selectDatabaseVersionQuery doubleForColumnAtIndex:0];
-	}
 	
-	return version;
+	//
+	//	First we need to verify that the database configuration table is present in the database.
+	//
+	NSAssert([self ensureBuiltInTablesArePresentForLayout:mDatabaseLayout error:&error],
+			 @"Could not create or update configuration table. Got error %@.", error);
+	
+	double version = 0.0;
+	NSString *selectDatabaseVersionQueryString = [NSString stringWithFormat:@"SELECT databaseVersion FROM %@", kDKDatabaseConfigurationTableName];
+	DKCompiledSQLQuery *selectDatabaseVersionQuery = [self compileSQLQuery:selectDatabaseVersionQueryString error:&error];
+	NSAssert((selectDatabaseVersionQuery && [selectDatabaseVersionQuery nextRow]),
+			 @"Could not find database version. Got error %@.", error);
+	
+	return [selectDatabaseVersionQuery doubleForColumnAtIndex:0];
 }
 
 #pragma mark -
+#pragma mark Fetching
 
 - (NSSet *)fetchObjectsInTable:(DKTableDescription *)table matchingQuery:(NSString *)query returnsObjectsAsPromises:(BOOL)returnsObjectsAsPromises error:(NSError **)error
 {
@@ -254,6 +243,9 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 	return nil;
 }
 
+#pragma mark -
+#pragma mark Inserting
+
 - (id)insertNewObjectIntoTable:(DKTableDescription *)table error:(NSError **)error
 {
 	NSParameterAssert(table);
@@ -328,6 +320,7 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 }
 
 #pragma mark -
+#pragma mark Database Queries
 
 - (DKCompiledSQLQuery *)compileSQLQuery:(NSString *)query error:(NSError **)error
 {
@@ -360,10 +353,121 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 }
 
 #pragma mark -
-#pragma mark Database set up
 
-- (BOOL)_createTableWithDescription:(DKTableDescription *)tableDescription error:(NSError **)error
+- (BOOL)tableExistsWithName:(NSString *)name
 {
+	NSString *query = [NSString stringWithFormat:@"PRAGMA table_info(%@)", [name stringByEscapingStringForLiteralUseInSQLQueries]];
+	
+	sqlite3_stmt *compiledSQLStatement = NULL;
+	if(sqlite3_prepare_v2(mSQLiteConnection, [query UTF8String], -1, &compiledSQLStatement, NULL) == SQLITE_OK)
+	{
+		BOOL success = (sqlite3_step(compiledSQLStatement) == SQLITE_ROW);
+		sqlite3_finalize(compiledSQLStatement);
+		
+		return success;
+	}
+	
+	return NO;
+}
+
+#pragma mark -
+#pragma mark Database Setup
+
+- (BOOL)ensureBuiltInTablesArePresentForLayout:(id < DKDatabaseLayout >)layout error:(NSError **)error
+{
+	NSParameterAssert(layout);
+	
+	//
+	//	We need to verify that the database configuration table is present in the database.
+	//	This table contains the database version specified in the database layout as well as
+	//	the version of DatabaseKit that created the database.
+	//
+	if(![self tableExistsWithName:kDKDatabaseConfigurationTableName])
+	{
+		NSString *createConfigurationTableQueryString = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (databaseVersion FLOAT NOT NULL, databaseKitVersion FLOAT NOT NULL);", kDKDatabaseConfigurationTableName, [layout databaseVersion]];
+		if(![self executeSQLQuery:createConfigurationTableQueryString error:error])
+			return NO;
+		
+		NSString *insertCurrentConfigurationQueryString = [NSString stringWithFormat:@"INSERT INTO %@ (databaseVersion, databaseKitVersion) VALUES(%f, 1.0);", kDKDatabaseConfigurationTableName, [layout databaseVersion]];
+		if(![self executeSQLQuery:insertCurrentConfigurationQueryString error:error])
+			return NO;
+		
+	}
+	
+	
+	//
+	//	We also need to verify that the sequence table exists. Without this we
+	//	can't track the unique identifier's of our database's tables.
+	//
+	if(![self tableExistsWithName:kDKDatabaseSequenceTableName])
+	{
+		//
+		//	The sequence table is used to track the last unique identifier created for each
+		//	table in the database, allowing us to fetch values we insert in DKDatabaseObject.
+		//
+		NSString *createDatabaseSequenceTableString = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (name TEXT NOT NULL, offset BIGINT DEFAULT(0));", kDKDatabaseSequenceTableName];
+		if(![self executeSQLQuery:createDatabaseSequenceTableString error:error])
+			return NO;
+	}
+	
+	
+	//
+	//	Lastly we need to make sure our table used for tracking relationships
+	//	is present. If its not, relationships can't work.
+	//
+	if(![self tableExistsWithName:kDKDatabaseRelationshipDescriptionTableName])
+	{
+		//
+		//	The relationship description table is used to track the two ends of a relationship.
+		//
+		NSString *createDatabaseRelationshipDescriptionTableString = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (sourceTable TEXT NOT NULL, sourceID BIGINT NOT NULL, destinationTable TEXT NOT NULL, destinationID BIGINT NOT NULL);", kDKDatabaseRelationshipDescriptionTableName];
+		if(![self executeSQLQuery:createDatabaseRelationshipDescriptionTableString error:error])
+			return NO;
+	}
+	
+	return YES;
+}
+
+- (BOOL)ensureDatabaseIsUsingLayout:(id < DKDatabaseLayout >)layout error:(NSError **)error
+{
+	NSParameterAssert(layout);
+	
+	//
+	//	First we need to verify that the database configuration table is present in the database.
+	//
+	[self ensureBuiltInTablesArePresentForLayout:layout error:error];
+	
+	
+	//
+	//	We enumerate the tables described in the database layout and attempt
+	//	to create each one. We also insert the initial table sequence value
+	//	here as well.
+	//
+	for (DKTableDescription *table in [layout tables])
+	{
+		NSString *tableName = [table.name stringByEscapingStringForLiteralUseInSQLQueries];
+		BOOL tableExisted = [self tableExistsWithName:tableName];
+		
+		if(![self createTableWithDescriptionIfAbsent:table error:error])
+			return NO;
+		
+		if(!tableExisted)
+		{
+			NSString *insertInitialSequenceForTableQueryString = [NSString stringWithFormat:@"INSERT OR IGNORE INTO %@ (name, offset) VALUES ('%@', 0)", kDKDatabaseSequenceTableName, tableName];
+			if(![self executeSQLQuery:insertInitialSequenceForTableQueryString error:error])
+				return NO;
+		}
+	}
+	
+	return YES;
+}
+
+#pragma mark -
+
+- (BOOL)createTableWithDescriptionIfAbsent:(DKTableDescription *)tableDescription error:(NSError **)error
+{
+	NSParameterAssert(tableDescription);
+	
 	NSString *escapedTableName = [tableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
 	
 	//
@@ -438,58 +542,6 @@ NSString *const kDKDatabaseSequenceTableName = @"_DKTableSequence";
 	[createTableQueryString appendString:@");"];
 	
 	return [self executeSQLQuery:createTableQueryString error:error];
-}
-
-- (BOOL)ensureDatabaseIsUsingLayout:(id < DKDatabaseLayout >)layout error:(NSError **)error
-{
-	//
-	//	First we need to verify that the database configuration table is present in the database.
-	//	This table contains the database version specified in the database layout as well as
-	//	the version of DatabaseKit that created the database.
-	//
-	if(![self tableExistsWithName:kDKDatabaseConfigurationTableName])
-	{
-		NSString *createConfigurationTableQueryString = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (databaseVersion FLOAT NOT NULL, databaseKitVersion FLOAT NOT NULL);", kDKDatabaseConfigurationTableName, [layout databaseVersion]];
-		if(![self executeSQLQuery:createConfigurationTableQueryString error:error])
-			return NO;
-		
-		NSString *insertCurrentConfigurationQueryString = [NSString stringWithFormat:@"INSERT INTO %@ (databaseVersion, databaseKitVersion) VALUES(%f, 1.0);", kDKDatabaseConfigurationTableName, [layout databaseVersion]];
-		if(![self executeSQLQuery:insertCurrentConfigurationQueryString error:error])
-			return NO;
-		
-		
-		//
-		//	The sequence table is used to track the last unique identifier created for each
-		//	table in the database, allowing us to fetch values we insert in DKDatabaseObject.
-		//
-		NSString *createDatabaseSequenceTableString = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (name TEXT NOT NULL, offset BIGINT DEFAULT(0));", kDKDatabaseSequenceTableName];
-		if(![self executeSQLQuery:createDatabaseSequenceTableString error:error])
-			return NO;
-	}
-	
-	
-	//
-	//	We enumerate the tables described in the database layout and attempt
-	//	to create each one. We also insert the initial table sequence value
-	//	here as well.
-	//
-	for (DKTableDescription *table in [layout tables])
-	{
-		NSString *tableName = [table.name stringByEscapingStringForLiteralUseInSQLQueries];
-		BOOL tableExisted = [self tableExistsWithName:tableName];
-		
-		if(![self _createTableWithDescription:table error:error])
-			return NO;
-		
-		if(!tableExisted)
-		{
-			NSString *insertInitialSequenceForTableQueryString = [NSString stringWithFormat:@"INSERT OR IGNORE INTO %@ (name, offset) VALUES ('%@', 0)", kDKDatabaseSequenceTableName, tableName];
-			if(![self executeSQLQuery:insertInitialSequenceForTableQueryString error:error])
-				return NO;
-		}
-	}
-	
-	return YES;
 }
 
 @end

@@ -32,6 +32,17 @@ DK_EXTERN NSString *const kDKDatabaseSequenceTableName;
  */
 @property (readonly) sqlite3 *sqliteConnection;
 
+#pragma mark -
+#pragma mark Database Layout
+
+/*!
+ @method
+ @abstract	Update or create the receiver's database configuration table using a specified database layout.
+ @param		layout	The layout of the database. May not be nil.
+ @param		error	Will contain an error if a arrises when creating the configuration table.
+ @result	YES if the receiver's database configuration is valid; NO otherwise.
+ */
+- (BOOL)ensureBuiltInTablesArePresentForLayout:(id < DKDatabaseLayout >)layout error:(NSError **)error;
 
 /*!
  @method
@@ -42,6 +53,19 @@ DK_EXTERN NSString *const kDKDatabaseSequenceTableName;
  */
 - (BOOL)ensureDatabaseIsUsingLayout:(id < DKDatabaseLayout >)layout error:(NSError **)error;
 
+#pragma mark -
+
+/*!
+ @method
+ @abstract	Create a table with a specified description if it is not present in the database.
+ @param		tableDescription	A description describing the table's attributes and relationships. May not be nil.
+ @param		error				If the table cannot be created this will contain an error. May be nil.
+ @result	YES if the table and its relationships could be created; NO otherwise.
+ */
+- (BOOL)createTableWithDescriptionIfAbsent:(DKTableDescription *)tableDescription error:(NSError **)error;
+
+#pragma mark -
+#pragma mark Fetching
 
 /*!
  @method

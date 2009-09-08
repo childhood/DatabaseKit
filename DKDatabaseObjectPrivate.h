@@ -10,6 +10,8 @@
 #import <Cocoa/Cocoa.h>
 #import "DKDatabaseObject.h"
 
+@class DKAttributeDescription, DKRelationshipDescription;
+
 //! @abstract	The private interface continuation for DKDatabaseObject.
 @interface DKDatabaseObject () //Continuation
 
@@ -25,6 +27,30 @@
  @discussion	This method is used to initialize database objects with existing entities in the database.
  */
 - (id)initWithUniqueIdentifier:(int64_t)uniqueIdentifier table:(DKTableDescription *)table database:(DKDatabase *)database;
+
+#pragma mark -
+#pragma mark Accessor/Mutators
+
+/*!
+ @method
+ @abstract	Set the value for a specified attribute in the receiver's database row.
+ @param		value					The value to set. May be nil.
+ @param		attributeDescription	The attribute to assign the value to. May not be nil.
+ */
+- (void)setValue:(id)value forAttribute:(DKAttributeDescription *)attributeDescription;
+
+/*!
+ @method
+ @abstract	Look up the value for a specified attribute in the receiver's database row.
+ @param		attributeDescription	The attribute to look up the value for. May not be nil.
+ @result	The value of the attribute. This may be nil.
+ */
+- (id)valueForAttribute:(DKAttributeDescription *)attributeDescription;
+
+#pragma mark -
+
+- (void)setValue:(id)value forRelationship:(DKRelationshipDescription *)relationshipDescription;
+- (id)valueForRelationship:(DKRelationshipDescription *)relationshipDescription;
 
 #pragma mark -
 #pragma mark Cache

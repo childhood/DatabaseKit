@@ -109,28 +109,14 @@
 #pragma mark -
 #pragma mark Database Accessor/Mutators
 
-- (void)setDatabaseValue:(id)value forKey:(NSString *)key
+- (void)setValue:(id)value forAttribute:(DKAttributeDescription *)attributeDescription
 {
-	NSParameterAssert(key);
-	
-	//
-	//	We look up the property associated with key in our table. If we can't find one
-	//	then key isn't a column in the table this database object represents.
-	//
-	DKPropertyDescription *property = [mTableDescription propertyWithName:key];
-	NSAssert((property != nil), @"No property by name %@ exists in the table %@.", key, mTableDescription.name);
-	
-	/* TODO: Implement relationships */
-	NSAssert([property isKindOfClass:[DKAttributeDescription class]], @"Unsupported attribute type %@.", property);
-	
+	NSParameterAssert(attributeDescription);
 	
 	NSError *error = nil;
 	
-	DKAttributeDescription *attributeDescription = (DKAttributeDescription *)property;
-	
-	
 	//We escape these values to prevent SQL injection.
-	NSString *escapedAttributeName = [key stringByEscapingStringForLiteralUseInSQLQueries];
+	NSString *escapedAttributeName = [attributeDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
 	NSString *escapedTableName = [mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
 	
 	//
@@ -203,16 +189,126 @@
 	//	we fail catastrophically. Because really, who wants to fail nicely.
 	//
 	NSAssert([updateQuery evaluateAndReturnError:&error], 
-			 @"Could not update value for key %@. Got error %@.", key, error);
+			 @"Could not update value for key %@. Got error %@.", attributeDescription.name, error);
+}
+
+- (id)valueForAttribute:(DKAttributeDescription *)attributeDescription
+{
+	NSParameterAssert(attributeDescription);
+	
+	NSError *error = nil;
+	
+	//We escape these values to prevent SQL injection.
+	NSString *escapedAttributeName = [attributeDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+	NSString *escapedTableName = [mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+	
+	//
+	//	We create an SQL SELECT query to find the value specified by `key` in
+	//	our row in the database. We find ourselves using our unique identifier.
+	//
+	NSString *selectQueryString = [NSString stringWithFormat:@"SELECT %@ FROM %@ WHERE(_dk_uniqueIdentifier=%lld)", escapedAttributeName, escapedTableName, mUniqueIdentifier];
+	
+	
+	//Evaluate the update query.
+	DKCompiledSQLQuery *selectQuery = [mDatabase compileSQLQuery:selectQueryString error:&error];
+	NSAssert((selectQuery != nil), 
+			 @"Could not compile select query. Got error %@.", error);
+	
+	//
+	//	The first row of the select query should contain the value specified by `key`.
+	//	If it doesn't, something has gone horribly awry and its time to shave your head.
+	//
+	NSAssert([selectQuery nextRow], 
+			 @"Select query could not return any results for key %@. Got error %@.", attributeDescription.name, error);
 	
 	
 	//
-	//	Update the cache. This allows for faster access times.
+	//	We convert the returned value from the query to an object using
+	//	the type specified by `attributeDescription` to decide what to create.
 	//
-	if(value)
-		[self cacheValue:value forKey:key];
-	else
-		[self removeCacheForKey:key];
+	id value = nil;
+	switch (attributeDescription.type)
+	{
+		case DKAttributeTypeString:
+			value = [selectQuery stringForColumnAtIndex:0];
+			break;
+			
+		case DKAttributeTypeDate:
+			value = [selectQuery dateForColumnAtIndex:0];
+			break;
+			
+		case DKAttributeTypeInt8:
+		case DKAttributeTypeInt16:
+		case DKAttributeTypeInt32:
+			value = [NSNumber numberWithInt:[selectQuery intForColumnAtIndex:0]];
+			break;
+			
+		case DKAttributeTypeInt64:
+			value = [NSNumber numberWithLongLong:[selectQuery longLongForColumnAtIndex:0]];
+			break;
+			
+		case DKAttributeTypeFloat:
+			value = [NSNumber numberWithDouble:[selectQuery doubleForColumnAtIndex:0]];
+			break;
+			
+		case DKAttributeTypeData:
+			value = [selectQuery dataForColumnAtIndex:0];
+			break;
+			
+		case DKAttributeTypeObject:
+			value = [selectQuery objectForColumnAtIndex:0];
+			break;
+			
+		default:
+			break;
+	}
+	
+	return value;
+}
+
+#pragma mark -
+
+- (void)setValue:(id)value forRelationship:(DKRelationshipDescription *)relationshipDescription
+{
+	
+}
+
+- (id)valueForRelationship:(DKRelationshipDescription *)relationshipDescription
+{
+	return nil;
+}
+
+#pragma mark -
+
+- (void)setDatabaseValue:(id)value forKey:(NSString *)key
+{
+	NSParameterAssert(key);
+	
+	//
+	//	We look up the property associated with key in our table. If we can't find one
+	//	then key isn't a column in the table this database object represents.
+	//
+	DKPropertyDescription *property = [mTableDescription propertyWithName:key];
+	NSAssert((property != nil), @"No property by name %@ exists in the table %@.", key, mTableDescription.name);
+	
+	if([property isKindOfClass:[DKAttributeDescription class]])
+	{
+		DKAttributeDescription *attributeDescription = (DKAttributeDescription *)property;
+		[self setValue:value forAttribute:attributeDescription];
+		
+		//
+		//	Update the cache. This allows for faster access times.
+		//
+		if(value)
+			[self cacheValue:value forKey:key];
+		else
+			[self removeCacheForKey:key];
+	}
+	else if([property isKindOfClass:[DKRelationshipDescription class]])
+	{
+		DKRelationshipDescription *relationshipDescription = (DKRelationshipDescription *)property;
+		[self setValue:value forRelationship:relationshipDescription];
+	}
 }
 
 - (id)databaseValueForKey:(NSString *)key
@@ -236,90 +332,29 @@
 	DKPropertyDescription *property = [mTableDescription propertyWithName:key];
 	NSAssert((property != nil), @"No property by name %@ exists in the table %@.", key, mTableDescription.name);
 	
-	/* TODO: Implement relationships */
-	NSAssert([property isKindOfClass:[DKAttributeDescription class]], @"Unsupported attribute type %@.", property);
-	
-	
-	id result = nil;
-	NSError *error = nil;
-	
-	DKAttributeDescription *attributeDescription = (DKAttributeDescription *)property;
-	
-	//We escape these values to prevent SQL injection.
-	NSString *escapedAttributeName = [key stringByEscapingStringForLiteralUseInSQLQueries];
-	NSString *escapedTableName = [mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
-	
-	//
-	//	We create an SQL SELECT query to find the value specified by `key` in
-	//	our row in the database. We find ourselves using our unique identifier.
-	//
-	NSString *selectQueryString = [NSString stringWithFormat:@"SELECT %@ FROM %@ WHERE(_dk_uniqueIdentifier=%lld)", escapedAttributeName, escapedTableName, mUniqueIdentifier];
-	
-	
-	//Evaluate the update query.
-	DKCompiledSQLQuery *selectQuery = [mDatabase compileSQLQuery:selectQueryString error:&error];
-	NSAssert((selectQuery != nil), 
-			 @"Could not compile select query. Got error %@.", error);
-	
-	//
-	//	The first row of the select query should contain the value specified by `key`.
-	//	If it doesn't, something has gone horribly awry and its time to shave your head.
-	//
-	NSAssert([selectQuery nextRow], 
-			 @"Select query could not return any results for key %@. Got error %@.", key, error);
-	
-	
-	//
-	//	We convert the returned value from the query to an object using
-	//	the type specified by `attributeDescription` to decide what to create.
-	//
-	switch (attributeDescription.type)
+	if([property isKindOfClass:[DKAttributeDescription class]])
 	{
-		case DKAttributeTypeString:
-			result = [selectQuery stringForColumnAtIndex:0];
-			break;
-			
-		case DKAttributeTypeDate:
-			result = [selectQuery dateForColumnAtIndex:0];
-			break;
-			
-		case DKAttributeTypeInt8:
-		case DKAttributeTypeInt16:
-		case DKAttributeTypeInt32:
-			result = [NSNumber numberWithInt:[selectQuery intForColumnAtIndex:0]];
-			break;
-			
-		case DKAttributeTypeInt64:
-			result = [NSNumber numberWithLongLong:[selectQuery longLongForColumnAtIndex:0]];
-			break;
-			
-		case DKAttributeTypeFloat:
-			result = [NSNumber numberWithDouble:[selectQuery doubleForColumnAtIndex:0]];
-			break;
-			
-		case DKAttributeTypeData:
-			result = [selectQuery dataForColumnAtIndex:0];
-			break;
-			
-		case DKAttributeTypeObject:
-			result = [selectQuery objectForColumnAtIndex:0];
-			break;
-			
-		default:
-			break;
+		DKAttributeDescription *attributeDescription = (DKAttributeDescription *)property;
+		
+		id result = [self valueForAttribute:attributeDescription];
+		
+		//
+		//	Update the cache. This allows for faster access times.
+		//
+		if(result)
+			[self cacheValue:result forKey:key];
+		else
+			[self removeCacheForKey:key];
+		
+		return result;
+	}
+	else if([property isKindOfClass:[DKRelationshipDescription class]])
+	{
+		DKRelationshipDescription *relationshipDescription = (DKRelationshipDescription *)property;
+		return [self valueForRelationship:relationshipDescription];
 	}
 	
-	
-	//
-	//	Update the cache. This allows for faster access times.
-	//
-	if(result)
-		[self cacheValue:result forKey:key];
-	else
-		[self removeCacheForKey:key];
-	
-	
-	return result;
+	return nil;
 }
 
 #pragma mark -

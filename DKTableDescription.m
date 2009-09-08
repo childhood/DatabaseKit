@@ -85,21 +85,29 @@ NSString *DKAttributeTypeToSQLiteType(DKAttributeType attributeType)
 	{
 		case DKAttributeTypeString:
 			return @"TEXT";
+			
 		case DKAttributeTypeDate:
 			return @"DATETIME";
+			
 		case DKAttributeTypeInt8:
 			return @"TINYINT";
+			
 		case DKAttributeTypeInt16:
 			return @"SMALLINT";
+			
 		case DKAttributeTypeInt32:
 			return @"INT";
+			
 		case DKAttributeTypeInt64:
 			return @"BIGINT";
+			
 		case DKAttributeTypeFloat:
 			return @"FLOAT";
+			
 		case DKAttributeTypeData:
 		case DKAttributeTypeObject:
 			return @"BLOB";
+			
 		default:
 			break;
 	}
@@ -122,6 +130,8 @@ NSString *DKAttributeTypeToSQLiteType(DKAttributeType attributeType)
 
 + (DKAttributeDescription *)attributeWithName:(NSString *)name type:(DKAttributeType)type
 {
+	NSParameterAssert(name);
+	
 	DKAttributeDescription *attribute = [[DKAttributeDescription new] autorelease];
 	attribute.name = name;
 	attribute.type = type;
@@ -132,7 +142,7 @@ NSString *DKAttributeTypeToSQLiteType(DKAttributeType attributeType)
 
 @implementation DKRelationshipDescription
 
-@synthesize destination, isOneToMany, deleteAction;
+@synthesize destination, inverseRelationshipName, relationshipType, deleteAction;
 
 - (void)dealloc
 {
