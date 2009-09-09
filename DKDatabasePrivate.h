@@ -22,6 +22,13 @@ DK_EXTERN NSString *const kDKDatabaseConfigurationTableName;
  */
 DK_EXTERN NSString *const kDKDatabaseSequenceTableName;
 
+/*!
+ @const
+ @abstract	The name of the table used to track relationships.
+ */
+DK_EXTERN NSString *const kDKDatabaseRelationshipDescriptionTableName;
+
+
 //! @abstract	The DKDatabase private continuation.
 @interface DKDatabase () //Continuation
 

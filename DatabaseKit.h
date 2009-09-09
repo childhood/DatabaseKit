@@ -11,5 +11,5 @@
 #import <DatabaseKit/DKDatabase.h>
 #import <DatabaseKit/DKDatabaseLayout.h>
 #import <DatabaseKit/DKFetchRequest.h>
-#import <DatabaseKit/DKDatabaseObject.h>
+#import <DatabaseKit/DKManagedObject.h>
 #import <DatabaseKit/DKTableDescription.h>

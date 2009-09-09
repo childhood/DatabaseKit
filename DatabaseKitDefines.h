@@ -47,4 +47,10 @@ DK_EXTERN NSError *DKLocalizedError(NSString *domain, NSInteger code, NSDictiona
  */
 typedef int SQLiteStatus;
 
+#pragma mark -
+#pragma mark DatabaseKit DSL
+
+#define dk_stringify(...) @#__VA_ARGS__
+#define dk_format(...) [NSString stringWithFormat:__VA_ARGS__]
+
 #endif /* DatabaseKitDefines_h */

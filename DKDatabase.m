@@ -14,8 +14,8 @@
 
 #import "DKFetchRequest.h"
 
-#import "DKDatabaseObjectPrivate.h"
-#import "DKDatabaseObject.h"
+#import "DKManagedObjectPrivate.h"
+#import "DKManagedObject.h"
 
 #import "DKCompiledSQLQuery.h"
 #import "NSString+Database.h"
@@ -176,9 +176,19 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	//
 	NSString *selectQueryString = nil;
 	if(query)
-		selectQueryString = [NSString stringWithFormat:@"SELECT _dk_uniqueIdentifier FROM %@ WHERE %@", escapedTableName, query];
+		selectQueryString = dk_format(
+			dk_stringify(
+				SELECT _dk_uniqueIdentifier FROM %@ WHERE %@
+			),
+			escapedTableName, query
+		);
 	else
-		selectQueryString = [NSString stringWithFormat:@"SELECT _dk_uniqueIdentifier FROM %@", escapedTableName];
+		selectQueryString = dk_format(
+			dk_stringify(
+				SELECT _dk_uniqueIdentifier FROM %@
+			),
+			escapedTableName
+		);
 	
 	//Execute the select query.
 	DKCompiledSQLQuery *selectQuery = [self compileSQLQuery:selectQueryString error:error];
@@ -187,11 +197,11 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	
 	//
 	//	We need to verify that the database-object-class the table specifies
-	//	inherits from DKDatabaseObject. If it doesn't then we have a problem.
+	//	inherits from DKManagedObject. If it doesn't then we have a problem.
 	//
 	Class databaseObjectClass = table.databaseObjectClass;
-	NSAssert(((databaseObjectClass == [DKDatabaseObject class]) || [databaseObjectClass isSubclassOfClass:[DKDatabaseObject class]]), 
-			 @"Database object class %@ does not inherit DKDatabaseObject. You fail at life.", NSStringFromClass(databaseObjectClass));
+	NSAssert(((databaseObjectClass == [DKManagedObject class]) || [databaseObjectClass isSubclassOfClass:[DKManagedObject class]]), 
+			 @"Database object class %@ does not inherit DKManagedObject. You fail at life.", NSStringFromClass(databaseObjectClass));
 	
 	
 	//
@@ -260,7 +270,12 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	//	the database's internal sequence table. We use this to calculate the new
 	//	unique identifier for the object we're about to insert.
 	//
-	NSString *selectOffsetQueryString = [NSString stringWithFormat:@"SELECT offset FROM %@ WHERE name='%@'", kDKDatabaseSequenceTableName, escapedTableName];
+	NSString *selectOffsetQueryString = dk_format(
+		dk_stringify(
+			SELECT offset FROM %@ WHERE name='%@'
+		),
+		kDKDatabaseSequenceTableName, escapedTableName
+	);
 	DKCompiledSQLQuery *selectOffsetQuery = [self compileSQLQuery:selectOffsetQueryString error:&transientError];
 	if(!selectOffsetQuery)
 		return nil;
@@ -283,7 +298,12 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	//	confirms our suspicions that there is no god. After all, what kind of god
 	//	would insert a new row into our database, its not like it attends church.
 	//
-	NSString *insertNewRowQueryString = [NSString stringWithFormat:@"INSERT INTO '%@' (_dk_uniqueIdentifier) VALUES (%lld)", escapedTableName, newUniqueIdentifier];
+	NSString *insertNewRowQueryString = dk_format(
+		dk_stringify(
+			INSERT INTO '%@' (_dk_uniqueIdentifier) VALUES (%lld)
+		),
+		escapedTableName, newUniqueIdentifier
+	);
 	DKCompiledSQLQuery *insertNewRowQuery = [self compileSQLQuery:insertNewRowQueryString error:&transientError];
 	if(!insertNewRowQuery)
 		return nil;
@@ -295,20 +315,25 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	NSAssert([insertNewRowQuery evaluateAndReturnError:&transientError], 
 			 @"Could not create new row for table named %@. Got error %@.", table.name, transientError);
 	
-	NSString *updateLastUniqueIdentifierQueryString = [NSString stringWithFormat:@"UPDATE %@ SET offset=%lld WHERE name='%@'", kDKDatabaseSequenceTableName, newUniqueIdentifier, escapedTableName];
+	NSString *updateLastUniqueIdentifierQueryString = dk_format(
+		dk_stringify(
+			UPDATE %@ SET offset=%lld WHERE name='%@'
+		),
+		kDKDatabaseSequenceTableName, newUniqueIdentifier, escapedTableName
+	);
 	NSAssert([self executeSQLQuery:updateLastUniqueIdentifierQueryString error:&transientError],
 			 @"Could not update unique identifier in DKDatabase internal state. Got error %@.", transientError);
 	//
 	//	We need to verify that the database-object-class the table specifies
-	//	inherits from DKDatabaseObject. If it doesn't then we have a problem.
+	//	inherits from DKManagedObject. If it doesn't then we have a problem.
 	//
 	Class databaseObjectClass = table.databaseObjectClass;
-	NSAssert(((databaseObjectClass == [DKDatabaseObject class]) || [databaseObjectClass isSubclassOfClass:[DKDatabaseObject class]]), 
-			 @"Database object class %@ does not inherit DKDatabaseObject. You fail at life.", NSStringFromClass(databaseObjectClass));
+	NSAssert(((databaseObjectClass == [DKManagedObject class]) || [databaseObjectClass isSubclassOfClass:[DKManagedObject class]]), 
+			 @"Database object class %@ does not inherit DKManagedObject. You fail at life.", NSStringFromClass(databaseObjectClass));
 	//
 	//	Now that we have a nice new row in `table`, we can create a wrapper object for it.
 	//	We use the database-object-class specified by `table`. It could be something other
-	//	then DKDatabaseObject.
+	//	then DKManagedObject.
 	//
 	id databaseObject = [[databaseObjectClass alloc] initWithUniqueIdentifier:newUniqueIdentifier 
 																		table:table 
@@ -356,18 +381,19 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 
 - (BOOL)tableExistsWithName:(NSString *)name
 {
-	NSString *query = [NSString stringWithFormat:@"PRAGMA table_info(%@)", [name stringByEscapingStringForLiteralUseInSQLQueries]];
+	NSString *tableInfoQueryString = dk_format(
+		dk_stringify(
+			PRAGMA table_info(%@)
+		), 
+		[name stringByEscapingStringForLiteralUseInSQLQueries]
+	);
 	
-	sqlite3_stmt *compiledSQLStatement = NULL;
-	if(sqlite3_prepare_v2(mSQLiteConnection, [query UTF8String], -1, &compiledSQLStatement, NULL) == SQLITE_OK)
-	{
-		BOOL success = (sqlite3_step(compiledSQLStatement) == SQLITE_ROW);
-		sqlite3_finalize(compiledSQLStatement);
-		
-		return success;
-	}
+	NSError *error = nil;
+	DKCompiledSQLQuery *tableInfoQuery = [self compileSQLQuery:tableInfoQueryString error:&error];
+	NSAssert((tableInfoQuery != nil),
+			 @"Could not compile table info query. Got error %@.", error);
 	
-	return NO;
+	return [tableInfoQuery nextRow];
 }
 
 #pragma mark -
@@ -384,11 +410,29 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	//
 	if(![self tableExistsWithName:kDKDatabaseConfigurationTableName])
 	{
-		NSString *createConfigurationTableQueryString = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (databaseVersion FLOAT NOT NULL, databaseKitVersion FLOAT NOT NULL);", kDKDatabaseConfigurationTableName, [layout databaseVersion]];
+		NSString *createConfigurationTableQueryString = dk_format(
+			dk_stringify(
+				CREATE TABLE IF NOT EXISTS %@ (
+					databaseVersion FLOAT NOT NULL, 
+					databaseKitVersion FLOAT NOT NULL
+				)
+			),
+			kDKDatabaseConfigurationTableName, [layout databaseVersion]
+		);
 		if(![self executeSQLQuery:createConfigurationTableQueryString error:error])
 			return NO;
 		
-		NSString *insertCurrentConfigurationQueryString = [NSString stringWithFormat:@"INSERT INTO %@ (databaseVersion, databaseKitVersion) VALUES(%f, 1.0);", kDKDatabaseConfigurationTableName, [layout databaseVersion]];
+		NSString *insertCurrentConfigurationQueryString = dk_format(
+			dk_stringify(INSERT INTO %@ (
+				databaseVersion, 
+				databaseKitVersion
+			)
+			VALUES(
+				%f,
+				1.0
+			)),
+			kDKDatabaseConfigurationTableName, [layout databaseVersion]
+		);
 		if(![self executeSQLQuery:insertCurrentConfigurationQueryString error:error])
 			return NO;
 		
@@ -403,9 +447,17 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	{
 		//
 		//	The sequence table is used to track the last unique identifier created for each
-		//	table in the database, allowing us to fetch values we insert in DKDatabaseObject.
+		//	table in the database, allowing us to fetch values we insert in DKManagedObject.
 		//
-		NSString *createDatabaseSequenceTableString = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (name TEXT NOT NULL, offset BIGINT DEFAULT(0));", kDKDatabaseSequenceTableName];
+		NSString *createDatabaseSequenceTableString = dk_format(
+			dk_stringify(
+				CREATE TABLE IF NOT EXISTS %@ (
+					name TEXT NOT NULL, 
+					offset BIGINT DEFAULT(0)
+				)
+			),
+			kDKDatabaseSequenceTableName
+		);
 		if(![self executeSQLQuery:createDatabaseSequenceTableString error:error])
 			return NO;
 	}
@@ -420,7 +472,19 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 		//
 		//	The relationship description table is used to track the two ends of a relationship.
 		//
-		NSString *createDatabaseRelationshipDescriptionTableString = [NSString stringWithFormat:@"CREATE TABLE IF NOT EXISTS %@ (sourceTable TEXT NOT NULL, sourceID BIGINT NOT NULL, destinationTable TEXT NOT NULL, destinationID BIGINT NOT NULL);", kDKDatabaseRelationshipDescriptionTableName];
+		NSString *createDatabaseRelationshipDescriptionTableString = dk_format(
+			dk_stringify(
+				CREATE TABLE IF NOT EXISTS %@ (
+					sourceKey TEXT NOT NULL, 
+					sourceTable TEXT NOT NULL, 
+					sourceID BIGINT NOT NULL, 
+					destinationKey TEXT, 
+					destinationTable TEXT NOT NULL, 
+					destinationID BIGINT NOT NULL
+				)
+			),
+			kDKDatabaseRelationshipDescriptionTableName
+		);
 		if(![self executeSQLQuery:createDatabaseRelationshipDescriptionTableString error:error])
 			return NO;
 	}
@@ -453,7 +517,19 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 		
 		if(!tableExisted)
 		{
-			NSString *insertInitialSequenceForTableQueryString = [NSString stringWithFormat:@"INSERT OR IGNORE INTO %@ (name, offset) VALUES ('%@', 0)", kDKDatabaseSequenceTableName, tableName];
+			NSString *insertInitialSequenceForTableQueryString = dk_format(
+				dk_stringify(
+					INSERT OR IGNORE INTO %@ (
+						name, 
+						offset
+					)
+					VALUES(
+						'%@', 
+						0
+					)
+				),
+				kDKDatabaseSequenceTableName, tableName
+			);
 			if(![self executeSQLQuery:insertInitialSequenceForTableQueryString error:error])
 				return NO;
 		}

@@ -1,13 +1,13 @@
 //
-//  DKDatabaseObject.m
+//  DKManagedObject.m
 //  DatabaseKit
 //
 //  Created by Peter MacWhinnie on 9/4/09.
 //  Copyright 2009 Roundabout Software. All rights reserved.
 //
 
-#import "DKDatabaseObject.h"
-#import "DKDatabaseObjectPrivate.h"
+#import "DKManagedObject.h"
+#import "DKManagedObjectPrivate.h"
 
 #import "DKDatabase.h"
 #import "DKDatabasePrivate.h"
@@ -19,7 +19,7 @@
 
 #import <sqlite3.h>
 
-@implementation DKDatabaseObject
+@implementation DKManagedObject
 
 - (void)dealloc
 {
@@ -59,6 +59,12 @@
 	
 	return [database insertNewObjectIntoTable:table error:nil];
 }
+
+#pragma mark -
+#pragma mark Properties
+
+@synthesize database = mDatabase;
+@synthesize tableDescription = mTableDescription;
 
 #pragma mark -
 #pragma mark Cache Management
@@ -126,7 +132,12 @@
 	//	Note that we use a ? so we don't have to escape the value. We set it directly
 	//	in the switch statement below.
 	//
-	NSString *updateQueryString = [NSString stringWithFormat:@"UPDATE %@ SET '%@' = ? WHERE _dk_uniqueIdentifier=%lld", escapedTableName, escapedAttributeName, mUniqueIdentifier];
+	NSString *updateQueryString = dk_format(
+		dk_stringify(
+			UPDATE %@ SET '%@' = ? WHERE _dk_uniqueIdentifier=%lld
+		),
+		escapedTableName, escapedAttributeName, mUniqueIdentifier
+	);
 	
 	//Evaluate the update query.
 	DKCompiledSQLQuery *updateQuery = [mDatabase compileSQLQuery:updateQueryString error:&error];
@@ -206,7 +217,12 @@
 	//	We create an SQL SELECT query to find the value specified by `key` in
 	//	our row in the database. We find ourselves using our unique identifier.
 	//
-	NSString *selectQueryString = [NSString stringWithFormat:@"SELECT %@ FROM %@ WHERE(_dk_uniqueIdentifier=%lld)", escapedAttributeName, escapedTableName, mUniqueIdentifier];
+	NSString *selectQueryString = dk_format(
+		dk_stringify(
+			SELECT %@ FROM %@ WHERE(_dk_uniqueIdentifier=%lld)
+		),
+		escapedAttributeName, escapedTableName, mUniqueIdentifier
+	);
 	
 	
 	//Evaluate the update query.
@@ -270,7 +286,19 @@
 
 - (void)setValue:(id)value forRelationship:(DKRelationshipDescription *)relationshipDescription
 {
+	NSError *error = nil;
+	DKRelationshipType relationshipType = relationshipDescription.relationshipType;
+	NSString *escapedRelationshipName = [relationshipDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+	NSString *escapedTableName = [mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
 	
+	if(relationshipType == kDKRelationshipTypeOneToOne)
+	{
+		NSAssert([value isKindOfClass:[DKManagedObject class]], 
+				 @"Non-database-object of type %@ given.", NSStringFromClass([value class]));
+		
+		DKManagedObject *databaseObject = (DKManagedObject *)value;
+		(void)databaseObject;
+	}
 }
 
 - (id)valueForRelationship:(DKRelationshipDescription *)relationshipDescription
@@ -393,7 +421,7 @@
 
 - (NSString *)description
 {
-	/* <DKDatabaseObject:0x00000000 (UID: 0, table: Test, key: value, ...)> */
+	/* <DKManagedObject:0x00000000 (UID: 0, table: Test, key: value, ...)> */
 	NSMutableString *description = [NSMutableString stringWithFormat:@"<%@:%p (UID: %lld, table: %@", [self className], self, mUniqueIdentifier, mTableDescription.name];
 	
 	[mCachedValues enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop) {

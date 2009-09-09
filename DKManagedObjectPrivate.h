@@ -1,5 +1,5 @@
 /*
- *  DKDatabaseObjectPrivate.h
+ *  DKManagedObjectPrivate.h
  *  DatabaseKit
  *
  *  Created by Peter MacWhinnie on 9/5/09.
@@ -8,12 +8,12 @@
  */
 
 #import <Cocoa/Cocoa.h>
-#import "DKDatabaseObject.h"
+#import "DKManagedObject.h"
 
 @class DKAttributeDescription, DKRelationshipDescription;
 
-//! @abstract	The private interface continuation for DKDatabaseObject.
-@interface DKDatabaseObject () //Continuation
+//! @abstract	The private interface continuation for DKManagedObject.
+@interface DKManagedObject () //Continuation
 
 #pragma mark Initialization
 

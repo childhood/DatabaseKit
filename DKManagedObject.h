@@ -1,5 +1,5 @@
 //
-//  DKDatabaseObject.h
+//  DKManagedObject.h
 //  DatabaseKit
 //
 //  Created by Peter MacWhinnie on 9/4/09.
@@ -14,7 +14,7 @@
  @method
  @abstract	This class is used to represent objects in a database.
  */
-@interface DKDatabaseObject : NSObject
+@interface DKManagedObject : NSObject
 {
 @package
 	/* owner */		int64_t mUniqueIdentifier;
@@ -29,4 +29,8 @@
 
 - (void)awakeFromInsertion;
 - (void)awakeFromFetch;
+
+@property (readonly) DKDatabase *database;
+
+@property (readonly) DKTableDescription *tableDescription;
 @end
