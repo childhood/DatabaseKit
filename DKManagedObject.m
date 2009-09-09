@@ -18,6 +18,7 @@
 #import "NSString+Database.h"
 
 #import <sqlite3.h>
+#import <libkern/OSAtomic.h>
 
 @implementation DKManagedObject
 
@@ -46,10 +47,53 @@
 		_dk_mDatabase = database;
 		
 		_dk_mCachedValues = [NSMutableDictionary new];
+		_dk_mExtraRetainCount = 1;
 		
 		return self;
 	}
 	return nil;
+}
+
+#pragma mark -
+#pragma mark Life Cycle Methods
+
+//
+//	The life cycle of DKManagedObject is controlled by DKDatabase. It only tracks its retain count
+//	for the purpose of controlling cache. That is, if a managed object has a retain count of 1 it
+//	is eligible for removal from local database cache.
+//
+- (oneway void)release
+{
+	//
+	//	Release does nothing if extra-retain-count is 1. We are simply tracking
+	//	this value for the purposes of cache-life-cycle management.
+	//
+	OSMemoryBarrier();
+	if(_dk_mExtraRetainCount > 1)
+	{
+#if __LP64__ || NS_BUILD_32_LIKE_64
+		OSAtomicDecrement64((volatile int64_t *)&_dk_mExtraRetainCount);
+#else
+		OSAtomicDecrement32((volatile int32_t *)&_dk_mExtraRetainCount);
+#endif /* __LP64__ || NS_BUILD_32_LIKE_64 */
+	}
+}
+
+- (id)retain
+{
+#if __LP64__ || NS_BUILD_32_LIKE_64
+	OSAtomicIncrement64((volatile int64_t *)&_dk_mExtraRetainCount);
+#else
+	OSAtomicIncrement32((volatile int32_t *)&_dk_mExtraRetainCount);
+#endif /* __LP64__ || NS_BUILD_32_LIKE_64 */
+	
+	return self;
+}
+
+- (NSUInteger)retainCount
+{
+	OSMemoryBarrier();
+	return _dk_mExtraRetainCount;
 }
 
 #pragma mark -

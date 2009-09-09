@@ -15,6 +15,13 @@
  @abstract		This class is used to represent objects in a database.
  @discussion	DKManagedObject does not have a designated initializer.
 				Use one of the methods on DKDatabase to acquire an instance of DKManagedObject.
+				
+				It is important to note that the life cycle of managed objects is controlled by DKDatabase.
+				When the value a managed object represents is no longer valid it will be automatically
+				destroyed by the database. A notification will be sent before the final deallocation so any
+				pointers to the managed object can be zeroed.
+				
+				It is safe to place DKManagedObject into collections.
  */
 @interface DKManagedObject : NSObject
 {
@@ -29,6 +36,7 @@
 	/* strong */	DKTableDescription *_dk_mTableDescription;
 	/* weak */		DKDatabase *_dk_mDatabase;
 	/* owner */		NSMutableDictionary *_dk_mCachedValues;
+	/* n/a */		NSInteger _dk_mExtraRetainCount;
 }
 #pragma mark Accessing/Mutating Columns
 

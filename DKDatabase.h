@@ -23,6 +23,7 @@
 	/* owner */	sqlite3 *mSQLiteConnection;
 	/* owner */	id < DKDatabaseLayout > mDatabaseLayout;
 	/* owner */	NSURL *mLocation;
+	/* owner */	NSMapTable *mManagedObjects;
 }
 #pragma mark Initialization
 

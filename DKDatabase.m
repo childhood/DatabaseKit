@@ -55,6 +55,9 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	[mLocation release];
 	mLocation = nil;
 	
+	NSFreeMapTable(mManagedObjects);
+	mManagedObjects = nil;
+	
 	[super dealloc];
 }
 
@@ -124,6 +127,8 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 		
 		mDatabaseLayout = [layout retain];
 		mLocation = [location retain];
+		
+		mManagedObjects = NSCreateMapTable(NSIntegerMapKeyCallBacks, NSObjectMapValueCallBacks, 0);
 		
 		return self;
 	}
@@ -209,17 +214,21 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	//	and create a database-object for each given unique identifier.
 	//
 	NSMutableSet *objects = [NSMutableSet set];
+	id databaseObject = nil;
 	while ([selectQuery nextRow])
 	{
 		int64_t uniqueIdentifier = [selectQuery longLongForColumnAtIndex:0];
+		@synchronized(self)
+		{
+			//
+			//	If an existing object already exists, we use it.
+			//	If one doesn't exist we create a new one and cache it.
+			//
+			databaseObject = NSMapGet(mManagedObjects, (const void *)uniqueIdentifier);
+		}
 		
-		id databaseObject = [[databaseObjectClass alloc] initWithUniqueIdentifier:uniqueIdentifier 
-																			table:table 
-																		 database:self];
 		if(databaseObject)
 		{
-			[databaseObject awakeFromFetch];
-			
 			//
 			//	If we've been asked to fulfill promises immediately then we
 			//	tell each database object to cache all of their columns.
@@ -228,6 +237,38 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 				[databaseObject cacheAllColumnsInTable];
 			
 			[objects addObject:databaseObject];
+		}
+		else
+		{
+			databaseObject = [[databaseObjectClass alloc] initWithUniqueIdentifier:uniqueIdentifier 
+																			 table:table 
+																		  database:self];
+			if(databaseObject)
+			{
+				[databaseObject awakeFromFetch];
+				
+				//
+				//	If we've been asked to fulfill promises immediately then we
+				//	tell each database object to cache all of their columns.
+				//
+				if(!returnsObjectsAsPromises)
+					[databaseObject cacheAllColumnsInTable];
+				
+				[objects addObject:databaseObject];
+				
+				
+				@synchronized(self)
+				{
+					//
+					//	Note the address of the database object. We own this object (its our slave)
+					//	and we need to be able to destroy it later when we no longer have a use for it.
+					//
+#if __OBJC_GC__
+					[[NSGarbageCollector defaultCollector] disableCollectorForPointer:databaseObject];
+#endif /* __OBJC_GC__ */
+					NSMapInsert(mManagedObjects, (const void *)uniqueIdentifier, databaseObject);
+				}
+			}
 		}
 	}
 	
@@ -323,6 +364,8 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	);
 	NSAssert([self executeSQLQuery:updateLastUniqueIdentifierQueryString error:&transientError],
 			 @"Could not update unique identifier in DKDatabase internal state. Got error %@.", transientError);
+	
+	
 	//
 	//	We need to verify that the database-object-class the table specifies
 	//	inherits from DKManagedObject. If it doesn't then we have a problem.
@@ -340,6 +383,18 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 																	 database:self];
 	[databaseObject awakeFromInsertion];
 	
+	
+	@synchronized(self)
+	{
+		//
+		//	Note the address of the database object. We own this object (its our slave)
+		//	and we need to be able to destroy it later when we no longer have a use for it.
+		//
+#if __OBJC_GC__
+		[[NSGarbageCollector defaultCollector] disableCollectorForPointer:databaseObject];
+#endif /* __OBJC_GC__ */
+		NSMapInsert(mManagedObjects, (const void *)newUniqueIdentifier, databaseObject);
+	}
 	
 	return databaseObject;
 }
@@ -362,21 +417,40 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	//	We use a SQL DELETE statement with the object's unique identifier to remove the value
 	//	it represents from the database. If this fails, something is wrong and we explode.
 	//
+	int64_t uniqueIdentifier = object.uniqueIdentifier;
 	NSString *deleteQueryString = dk_string_from_format(
 		dk_stringify_sql(
 			DELETE FROM %@ WHERE _dk_uniqueIdentifier=%lld
 		),
-		[object.tableDescription.name stringByEscapingStringForLiteralUseInSQLQueries], object.uniqueIdentifier
+		[object.tableDescription.name stringByEscapingStringForLiteralUseInSQLQueries], uniqueIdentifier
 	);
 	NSError *error = nil;
 	NSAssert([self executeSQLQuery:deleteQueryString error:&error],
 			 @"Could not delete object %@. Got error %@.", error);
 	
 	
+	@synchronized(self)
+	{
+		//
+		//	We're done with the managed object. Its time we destroy it its not useful anymore.
+		//
+		NSMapRemove(mManagedObjects, (const void *)uniqueIdentifier);
+	}
+	
+#if __OBJC_GC__
 	//
-	//	We're done with the object, release it.
+	//	We disable collection for objects managed by DKDatabase so we have control over their life cycle.
+	//	Here we re-enable it so that it will be destroyed on the next collection cycle.
 	//
-	[object release];
+	[[NSGarbageCollector defaultCollector] enableCollectorForPointer:databaseObject];
+#else
+	//
+	//	-[NSObject dealloc] will destroy the memory that the managed object occupies.
+	//	Yes, yes, I know. This is evil and the documentation expressly forbids it.
+	//	Well I never was one for listening to directions.
+	//
+	[object dealloc];
+#endif /* __OBJC_GC__ */
 }
 
 #pragma mark -
