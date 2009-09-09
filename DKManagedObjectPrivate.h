@@ -53,6 +53,11 @@
 - (id)valueForRelationship:(DKRelationshipDescription *)relationshipDescription;
 
 #pragma mark -
+#pragma mark Properties
+
+@property (readonly) int64_t uniqueIdentifier;
+
+#pragma mark -
 #pragma mark Cache
 
 /*!

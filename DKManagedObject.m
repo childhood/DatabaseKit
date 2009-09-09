@@ -23,10 +23,10 @@
 
 - (void)dealloc
 {
-	if(mCachedValues)
+	if(_dk_mCachedValues)
 	{
-		[mCachedValues release];
-		mCachedValues = nil;
+		[_dk_mCachedValues release];
+		_dk_mCachedValues = nil;
 	}
 	
 	[super dealloc];
@@ -41,30 +41,23 @@
 	
 	if((self = [super init]))
 	{
-		mUniqueIdentifier = uniqueIdentifier;
-		mTableDescription = table;
-		mDatabase = database;
+		_dk_mUniqueIdentifier = uniqueIdentifier;
+		_dk_mTableDescription = table;
+		_dk_mDatabase = database;
 		
-		mCachedValues = [NSMutableDictionary new];
+		_dk_mCachedValues = [NSMutableDictionary new];
 		
 		return self;
 	}
 	return nil;
 }
 
-- (id)initWithTable:(DKTableDescription *)table insertIntoDatabase:(DKDatabase *)database
-{
-	NSParameterAssert(table);
-	NSParameterAssert(database);
-	
-	return [database insertNewObjectIntoTable:table error:nil];
-}
-
 #pragma mark -
 #pragma mark Properties
 
-@synthesize database = mDatabase;
-@synthesize tableDescription = mTableDescription;
+@synthesize database = _dk_mDatabase;
+@synthesize tableDescription = _dk_mTableDescription;
+@synthesize uniqueIdentifier = _dk_mUniqueIdentifier;
 
 #pragma mark -
 #pragma mark Cache Management
@@ -73,7 +66,7 @@
 {
 	@synchronized(self)
 	{
-		[mCachedValues setObject:value forKey:key];
+		[_dk_mCachedValues setObject:value forKey:key];
 	}
 }
 
@@ -81,17 +74,19 @@
 {
 	@synchronized(self)
 	{
-		return [mCachedValues objectForKey:key];
+		return [_dk_mCachedValues objectForKey:key];
 	}
 }
 
 - (void)cacheAllColumnsInTable
 {
-	for (DKPropertyDescription *property in mTableDescription.properties)
-	{
-		NSLog(@"Caching %@", property.name);
-		[self databaseValueForKey:property.name];
-	}
+	//
+	//	We enumerate all of the properties in our table description.
+	//	By asking ourselves for the value of the each property we
+	//	build a local cache of the row this object represents in the database.
+	//
+	for (DKPropertyDescription *property in _dk_mTableDescription.properties)
+		[self valueForColumnNamed:property.name];
 }
 
 #pragma mark -
@@ -100,7 +95,7 @@
 {
 	@synchronized(self)
 	{
-		[mCachedValues removeObjectForKey:key];
+		[_dk_mCachedValues removeObjectForKey:key];
 	}
 }
 
@@ -108,7 +103,7 @@
 {
 	@synchronized(self)
 	{
-		[mCachedValues removeAllObjects];
+		[_dk_mCachedValues removeAllObjects];
 	}
 }
 
@@ -123,7 +118,7 @@
 	
 	//We escape these values to prevent SQL injection.
 	NSString *escapedAttributeName = [attributeDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
-	NSString *escapedTableName = [mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+	NSString *escapedTableName = [_dk_mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
 	
 	//
 	//	We create an SQL UPDATE query to update the value associated with `key`.
@@ -132,15 +127,15 @@
 	//	Note that we use a ? so we don't have to escape the value. We set it directly
 	//	in the switch statement below.
 	//
-	NSString *updateQueryString = dk_format(
-		dk_stringify(
+	NSString *updateQueryString = dk_string_from_format(
+		dk_stringify_sql(
 			UPDATE %@ SET '%@' = ? WHERE _dk_uniqueIdentifier=%lld
 		),
-		escapedTableName, escapedAttributeName, mUniqueIdentifier
+		escapedTableName, escapedAttributeName, _dk_mUniqueIdentifier
 	);
 	
 	//Evaluate the update query.
-	DKCompiledSQLQuery *updateQuery = [mDatabase compileSQLQuery:updateQueryString error:&error];
+	DKCompiledSQLQuery *updateQuery = [_dk_mDatabase compileSQLQuery:updateQueryString error:&error];
 	NSAssert((updateQuery != nil), 
 			 @"Could not compile update query. Got error %@.", error);
 	
@@ -211,22 +206,22 @@
 	
 	//We escape these values to prevent SQL injection.
 	NSString *escapedAttributeName = [attributeDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
-	NSString *escapedTableName = [mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+	NSString *escapedTableName = [_dk_mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
 	
 	//
 	//	We create an SQL SELECT query to find the value specified by `key` in
 	//	our row in the database. We find ourselves using our unique identifier.
 	//
-	NSString *selectQueryString = dk_format(
-		dk_stringify(
+	NSString *selectQueryString = dk_string_from_format(
+		dk_stringify_sql(
 			SELECT %@ FROM %@ WHERE(_dk_uniqueIdentifier=%lld)
 		),
-		escapedAttributeName, escapedTableName, mUniqueIdentifier
+		escapedAttributeName, escapedTableName, _dk_mUniqueIdentifier
 	);
 	
 	
 	//Evaluate the update query.
-	DKCompiledSQLQuery *selectQuery = [mDatabase compileSQLQuery:selectQueryString error:&error];
+	DKCompiledSQLQuery *selectQuery = [_dk_mDatabase compileSQLQuery:selectQueryString error:&error];
 	NSAssert((selectQuery != nil), 
 			 @"Could not compile select query. Got error %@.", error);
 	
@@ -289,7 +284,7 @@
 	NSError *error = nil;
 	DKRelationshipType relationshipType = relationshipDescription.relationshipType;
 	NSString *escapedRelationshipName = [relationshipDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
-	NSString *escapedTableName = [mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+	NSString *escapedTableName = [_dk_mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
 	
 	if(relationshipType == kDKRelationshipTypeOneToOne)
 	{
@@ -308,7 +303,7 @@
 
 #pragma mark -
 
-- (void)setDatabaseValue:(id)value forKey:(NSString *)key
+- (void)setValue:(id)value forColumnNamed:(NSString *)key
 {
 	NSParameterAssert(key);
 	
@@ -316,8 +311,8 @@
 	//	We look up the property associated with key in our table. If we can't find one
 	//	then key isn't a column in the table this database object represents.
 	//
-	DKPropertyDescription *property = [mTableDescription propertyWithName:key];
-	NSAssert((property != nil), @"No property by name %@ exists in the table %@.", key, mTableDescription.name);
+	DKPropertyDescription *property = [_dk_mTableDescription propertyWithName:key];
+	NSAssert((property != nil), @"No property by name %@ exists in the table %@.", key, _dk_mTableDescription.name);
 	
 	if([property isKindOfClass:[DKAttributeDescription class]])
 	{
@@ -339,7 +334,7 @@
 	}
 }
 
-- (id)databaseValueForKey:(NSString *)key
+- (id)valueForColumnNamed:(NSString *)key
 {
 	NSParameterAssert(key);
 	
@@ -357,8 +352,8 @@
 	//	We look up the property associated with key in our table. If we can't find one
 	//	then key isn't a column in the table this database object represents.
 	//
-	DKPropertyDescription *property = [mTableDescription propertyWithName:key];
-	NSAssert((property != nil), @"No property by name %@ exists in the table %@.", key, mTableDescription.name);
+	DKPropertyDescription *property = [_dk_mTableDescription propertyWithName:key];
+	NSAssert((property != nil), @"No property by name %@ exists in the table %@.", key, _dk_mTableDescription.name);
 	
 	if([property isKindOfClass:[DKAttributeDescription class]])
 	{
@@ -386,7 +381,7 @@
 }
 
 #pragma mark -
-#pragma mark Callbacks
+#pragma mark Database Notifications
 
 - (void)awakeFromInsertion
 {
@@ -399,20 +394,27 @@
 }
 
 #pragma mark -
+
+- (void)prepareForDeletion
+{
+	//Do nothing.
+}
+
+#pragma mark -
 #pragma mark Overrides
 
 - (void)setValue:(id)value forUndefinedKey:(NSString *)key
 {
-	if([mTableDescription propertyWithName:key])
-		[self setDatabaseValue:value forKey:key];
+	if([_dk_mTableDescription propertyWithName:key])
+		[self setValue:value forColumnNamed:key];
 	else
 		[super setValue:value forUndefinedKey:key];
 }
 
 - (id)valueForUndefinedKey:(NSString *)key
 {
-	if([mTableDescription propertyWithName:key])
-		return [self databaseValueForKey:key];
+	if([_dk_mTableDescription propertyWithName:key])
+		return [self valueForColumnNamed:key];
 	
 	return [super valueForUndefinedKey:key];
 }
@@ -421,10 +423,10 @@
 
 - (NSString *)description
 {
-	/* <DKManagedObject:0x00000000 (UID: 0, table: Test, key: value, ...)> */
-	NSMutableString *description = [NSMutableString stringWithFormat:@"<%@:%p (UID: %lld, table: %@", [self className], self, mUniqueIdentifier, mTableDescription.name];
+	/* <DKManagedObject:0x00000000 ([promise, ]UID: 0, table: Test, key: value, ...)> */
+	NSMutableString *description = [NSMutableString stringWithFormat:@"<%@:%p (%@UID: %lld, table: %@", [self className], self, ([_dk_mCachedValues count] == 0)? @"promise, " : @"", _dk_mUniqueIdentifier, _dk_mTableDescription.name];
 	
-	[mCachedValues enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop) {
+	[_dk_mCachedValues enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop) {
 		[description appendFormat:@", %@: %@", key, value];
 	}];
 	[description appendString:@")>"];

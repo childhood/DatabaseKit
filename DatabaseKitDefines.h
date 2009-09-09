@@ -50,7 +50,7 @@ typedef int SQLiteStatus;
 #pragma mark -
 #pragma mark DatabaseKit DSL
 
-#define dk_stringify(...) @#__VA_ARGS__
-#define dk_format(...) [NSString stringWithFormat:__VA_ARGS__]
+#define dk_stringify_sql(...) @#__VA_ARGS__
+#define dk_string_from_format(...) [NSString stringWithFormat:__VA_ARGS__]
 
 #endif /* DatabaseKitDefines_h */

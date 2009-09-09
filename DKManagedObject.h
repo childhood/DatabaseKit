@@ -12,25 +12,86 @@
 
 /*!
  @method
- @abstract	This class is used to represent objects in a database.
+ @abstract		This class is used to represent objects in a database.
+ @discussion	DKManagedObject does not have a designated initializer.
+				Use one of the methods on DKDatabase to acquire an instance of DKManagedObject.
  */
 @interface DKManagedObject : NSObject
 {
 @package
-	/* owner */		int64_t mUniqueIdentifier;
-	/* strong */	DKTableDescription *mTableDescription;
-	/* weak */		DKDatabase *mDatabase;
-	/* owner */		NSMutableDictionary *mCachedValues;
+	//
+	//	We use the (fairly strange) _dk_m prefix for ivars in DKManagedObject
+	//	because it is meant to be subclassed and we don't want to conflict
+	//	with ivars in subclasses.
+	//
+	
+	/* owner */		int64_t _dk_mUniqueIdentifier;
+	/* strong */	DKTableDescription *_dk_mTableDescription;
+	/* weak */		DKDatabase *_dk_mDatabase;
+	/* owner */		NSMutableDictionary *_dk_mCachedValues;
 }
-- (id)initWithTable:(DKTableDescription *)table insertIntoDatabase:(DKDatabase *)database;
+#pragma mark Accessing/Mutating Columns
 
-- (void)setDatabaseValue:(id)value forKey:(NSString *)key;
-- (id)databaseValueForKey:(NSString *)key;
+/*!
+ @method
+ @abstract	Set the value of a specified column.
+ @param		value	The value to assign to a specified column. May be nil.
+ @param		key		The name of the specified column in the receiver's table description. May not be nil.
+ */
+- (void)setValue:(id)value forColumnNamed:(NSString *)key;
 
+/*!
+ @method
+ @abstract		Get the value of a specified column.
+ @param			key		The name of the specified column in the receiver's table description. May not be nil.
+ @discussion	No assumptions should be made about the amount of time this method takes to fetch the value.
+				The receiver might have a local cache of the value for the specified key or it may need to
+				fetch it from the database.
+ */
+- (id)valueForColumnNamed:(NSString *)key;
+
+#pragma mark -
+#pragma mark Database Notifications
+
+/*!
+ @method
+ @abstract		Invoked by DatabaseKit when the receiver is first inserted into a DKDatabase.
+ @discussion	You do not typically invoke this method yourself, it is called automatically by DKDatabase.
+				
+				Default implementation does nothing. It is not necessary to message super.
+ */
 - (void)awakeFromInsertion;
+
+/*!
+ @method
+ @abstract		Invoked by DatabaseKit when the receiver is fetched from a DKDatabase.
+ @discussion	You do not typically invoke this method yourself, it is called automatically by DKDatabase.
+				
+				Default implementation does nothing. It is not necessary to message super.
+ */
 - (void)awakeFromFetch;
 
+#pragma mark -
+
+/*!
+ @method
+ @abstract		Invoked by DatabaseKit when the receiver is about to be deleted from the database.
+ @discussion	You do not typically invoke this method yourself, it is called automatically by DKDatabase.
+ */
+- (void)prepareForDeletion;
+
+#pragma mark -
+#pragma mark Properties
+
+/*!
+ @property
+ @abstract	The database that the managed object is owned by.
+ */
 @property (readonly) DKDatabase *database;
 
+/*!
+ @property
+ @abstract	The table description that the managed object represents.
+ */
 @property (readonly) DKTableDescription *tableDescription;
 @end

@@ -11,7 +11,7 @@
 #import <dispatch/dispatch.h>
 
 @protocol DKDatabaseLayout;
-@class DKFetchRequest, DKCompiledSQLQuery, DKTableDescription;
+@class DKFetchRequest, DKCompiledSQLQuery, DKTableDescription, DKManagedObject;
 
 /*!
  @method
@@ -24,6 +24,15 @@
 	/* owner */	id < DKDatabaseLayout > mDatabaseLayout;
 	/* owner */	NSURL *mLocation;
 }
+#pragma mark Initialization
+
+/*!
+ @method
+ @abstract	DKDatabase's implementation of this method raises an exception. Use initWithDatabaseAtURL:layout:error: instead.
+ @result	Never returns.
+ */
+- (id)init;
+
 /*!
  @method
  @abstract		Initialize a database with a storage location and layout. Designated initializer.
@@ -34,6 +43,9 @@
  @discussion	Passing in a nil location will cause a transient database to be created.
  */
 - (id)initWithDatabaseAtURL:(NSURL *)location layout:(id < DKDatabaseLayout >)layout error:(NSError **)error;
+
+#pragma mark -
+#pragma mark Database Attributes
 
 /*!
  @property
@@ -55,7 +67,6 @@
 @property (readonly) double databaseVersion;
 
 #pragma mark -
-#pragma mark Database Interaction
 
 /*!
  @method
@@ -66,6 +77,7 @@
 - (BOOL)tableExistsWithName:(NSString *)name;
 
 #pragma mark -
+#pragma mark SQL Queries
 
 /*!
  @method
@@ -88,6 +100,7 @@
 - (BOOL)executeSQLQuery:(NSString *)query error:(NSError **)error;
 
 #pragma mark -
+#pragma mark Fetching
 
 /*!
  @method
@@ -99,6 +112,7 @@
 - (NSArray *)executeFetchRequest:(DKFetchRequest *)fetchRequest error:(NSError **)error;
 
 #pragma mark -
+#pragma mark Managed Object Life Cycle
 
 /*!
  @method
@@ -109,5 +123,29 @@
  @discussion	The value returned by this method is not autoreleased.
  */
 - (id)insertNewObjectIntoTable:(DKTableDescription *)table error:(NSError **)error;
+
+/*!
+ @method
+ @abstract		Delete a managed object from the receiver.
+ @param			object	The managed object to delete. May not be nil.
+ @discussion	The managed object passed in should be considered invalid after this method returns
+				and all references should be destroyed.
+ */
+- (void)deleteObject:(DKManagedObject *)object;
+
+#pragma mark -
+#pragma mark Transactions
+
+/*!
+ @method
+ @abstract	Begin a transaction in the receiver's SQL connection.
+ */
+- (void)beginTransaction;
+
+/*!
+ @method
+ @abstract	Commit the top most transaction in the receiver's SQL connection.
+ */
+- (void)commitTransaction;
 
 @end
