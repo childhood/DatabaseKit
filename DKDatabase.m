@@ -166,6 +166,14 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 }
 
 #pragma mark -
+#pragma mark Overrides
+
+- (NSString *)description
+{
+	return [NSString stringWithFormat:@"<%@:%p (%ld objects active)>", [self className], self, NSCountMapTable(mManagedObjects)];
+}
+
+#pragma mark -
 #pragma mark Fetching
 
 - (NSSet *)fetchObjectsInTable:(DKTableDescription *)table matchingQuery:(NSString *)query returnsObjectsAsPromises:(BOOL)returnsObjectsAsPromises error:(NSError **)error
@@ -373,6 +381,7 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	Class databaseObjectClass = table.databaseObjectClass;
 	NSAssert(((databaseObjectClass == [DKManagedObject class]) || [databaseObjectClass isSubclassOfClass:[DKManagedObject class]]), 
 			 @"Database object class %@ does not inherit DKManagedObject. You fail at life.", NSStringFromClass(databaseObjectClass));
+	
 	//
 	//	Now that we have a nice new row in `table`, we can create a wrapper object for it.
 	//	We use the database-object-class specified by `table`. It could be something other
