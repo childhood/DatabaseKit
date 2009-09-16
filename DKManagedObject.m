@@ -19,6 +19,7 @@
 
 #import <sqlite3.h>
 #import <libkern/OSAtomic.h>
+#import <objc/runtime.h>
 
 @implementation DKManagedObject
 
@@ -97,6 +98,49 @@
 }
 
 #pragma mark -
+#pragma mark Accessor/Mutator Generation
+
+static void _DKManagedObject_SetCallback(DKManagedObject *self, SEL _cmd, id value)
+{
+	NSMutableString *columnName = [NSMutableString stringWithString:NSStringFromSelector(_cmd)];
+	
+	//Remove the set prefix
+	[columnName deleteCharactersInRange:NSMakeRange(0, 3)];
+	
+	//Remove the : suffix
+	[columnName deleteCharactersInRange:NSMakeRange([columnName length] - 1, 1)];
+	
+	//Downcase the first character
+	[columnName replaceCharactersInRange:NSMakeRange(0, 1) withString:[[columnName substringToIndex:1] lowercaseString]];
+	
+	[self setValue:value forColumnNamed:columnName];
+}
+
+static id _DKManagedObject_GetCallback(DKManagedObject *self, SEL _cmd)
+{
+	NSString *columnName = NSStringFromSelector(_cmd);
+	return [self valueForColumnNamed:columnName];
+}
+
+#pragma mark -
+
++ (void)addAccessorMutatorPairForProperty:(DKPropertyDescription *)property
+{
+	NSParameterAssert(property);
+	
+	NSString *propertyName = property.name;
+	
+	SEL accessorSelector = NSSelectorFromString(propertyName);
+	SEL mutatorSelector = NSSelectorFromString([NSString stringWithFormat:@"set%C%@:", toupper([propertyName characterAtIndex:0]), [propertyName substringFromIndex:1]]);
+	
+	if(!class_getInstanceMethod(self, mutatorSelector))
+		class_addMethod(self, mutatorSelector, (IMP)&_DKManagedObject_SetCallback, "v@:@");
+	
+	if(!class_getInstanceMethod(self, accessorSelector))
+		class_addMethod(self, accessorSelector, (IMP)&_DKManagedObject_GetCallback, "@@:");
+}
+
+#pragma mark -
 #pragma mark Properties
 
 @synthesize database = _dk_mDatabase;
@@ -157,6 +201,8 @@
 - (void)setValue:(id)value forAttribute:(DKAttributeDescription *)attributeDescription
 {
 	NSParameterAssert(attributeDescription);
+	if(attributeDescription.isRequired)
+		NSParameterAssert(value);
 	
 	NSError *error = nil;
 	
@@ -271,10 +317,10 @@
 	
 	//
 	//	The first row of the select query should contain the value specified by `key`.
-	//	If it doesn't, something has gone horribly awry and its time to shave your head.
+	//	If it doesn't its value is nil and we're just going to return that.
 	//
-	NSAssert([selectQuery nextRow], 
-			 @"Select query could not return any results for key %@. Got error %@.", attributeDescription.name, error);
+	if(![selectQuery nextRow])
+		return nil;
 	
 	
 	//
@@ -325,6 +371,12 @@
 
 - (void)setValue:(id)value forRelationship:(DKRelationshipDescription *)relationshipDescription
 {
+	NSParameterAssert(relationshipDescription);
+	
+	//We only require value to be non-nil if the relationship denotes it.
+	if(relationshipDescription.isRequired)
+		NSParameterAssert(value);
+	
 	NSError *error = nil;
 	DKRelationshipType relationshipType = relationshipDescription.relationshipType;
 	NSString *escapedRelationshipName = [relationshipDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
@@ -332,16 +384,152 @@
 	
 	if(relationshipType == kDKRelationshipTypeOneToOne)
 	{
-		NSAssert([value isKindOfClass:[DKManagedObject class]], 
-				 @"Non-database-object of type %@ given.", NSStringFromClass([value class]));
+		if(value)
+			NSAssert([value isKindOfClass:[DKManagedObject class]], 
+					 @"Non-database-object of type %@ given.", NSStringFromClass([value class]));
 		
 		DKManagedObject *databaseObject = (DKManagedObject *)value;
-		(void)databaseObject;
+		
+		
+		//
+		//	If we've been given a value we update the relationship with the unique identifier
+		//	of the passed in database object.
+		//
+		//	If we're given nil and the relationship allows NULL values, we update the relationship with NULL.
+		//
+		NSString *updateQueryString = nil;
+		NSString *inverseRelationshipUpdateQueryString = nil;
+		if(value)
+		{
+			//
+			//	One-to-one relationships are the simplest of relationships. They are represented in
+			//	the database by a column of type BIGINT. The value of this column is the (database)
+			//	unique identifier of the database value of the column.
+			//
+			updateQueryString = dk_string_from_format(
+				dk_stringify_sql(
+					UPDATE %@ SET '%@' = %lld WHERE _dk_uniqueIdentifier=%lld
+				),
+				escapedTableName, escapedRelationshipName, databaseObject.uniqueIdentifier, _dk_mUniqueIdentifier
+			);
+			
+			
+			//
+			//	If this relationship has an inverse, we also need to update that.
+			//	Bad shit will happen if we don't, afterall.
+			//
+			DKRelationshipDescription *inverseRelationship = relationshipDescription.inverseRelationship;
+			if(inverseRelationship)
+			{
+				NSString *escapedInverseTableName = [databaseObject.tableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+				NSString *escapedInverseColumnName = [inverseRelationship.name stringByEscapingStringForLiteralUseInSQLQueries];
+				inverseRelationshipUpdateQueryString = dk_string_from_format(
+					dk_stringify_sql(
+						UPDATE %@ SET '%@' = %lld WHERE _dk_uniqueIdentifier=%lld
+					),
+					escapedInverseTableName, escapedInverseColumnName, _dk_mUniqueIdentifier, databaseObject.uniqueIdentifier
+				);
+			}
+		}
+		else
+		{
+			//
+			//	The update query is simple enough. Really. Its the same as the one above
+			//	only it sets the relationship to NULL instead of a unique identifier.
+			//
+			updateQueryString = dk_string_from_format(
+				dk_stringify_sql(
+					UPDATE %@ SET '%@' = NULL WHERE _dk_uniqueIdentifier=%lld
+				),
+				escapedTableName, escapedRelationshipName, _dk_mUniqueIdentifier
+			);
+			
+			
+			//
+			//	If this relationship has an inverse, we also need to update that.
+			//	Bad shit will happen if we don't, afterall.
+			//
+			DKRelationshipDescription *inverseRelationship = relationshipDescription.inverseRelationship;
+			if(inverseRelationship)
+			{
+				//
+				//	Fetch the existing value for the relationship. If one exists
+				//	we need to set its column that tracks us to NULL.
+				//
+				DKManagedObject *existingValue = [self valueForRelationship:relationshipDescription];
+				if(existingValue)
+				{
+					NSString *escapedInverseTableName = [existingValue.tableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+					NSString *escapedInverseColumnName = [inverseRelationship.name stringByEscapingStringForLiteralUseInSQLQueries];
+					
+					inverseRelationshipUpdateQueryString = dk_string_from_format(
+						dk_stringify_sql(
+							UPDATE %@ SET '%@' = NULL WHERE _dk_uniqueIdentifier=%lld
+						),
+						escapedInverseTableName, escapedInverseColumnName, existingValue.uniqueIdentifier
+					);
+				}
+			}
+		}
+		
+		//
+		//	Its time to update the relationship column. If this doesn't work the world is going to end.
+		//
+		NSAssert([_dk_mDatabase executeSQLQuery:updateQueryString error:&error],
+				 @"Could not update relationship on object %@ with %@. Got error %@.", self, databaseObject, error);
+		
+		
+		//
+		//	We only run the inverse relationship update query if there's actually
+		//	an inverse relationship to update.
+		//
+		if(inverseRelationshipUpdateQueryString)
+			NSAssert([_dk_mDatabase executeSQLQuery:inverseRelationshipUpdateQueryString error:&error],
+					 @"Could not update inverse relationship. Got error %@.", error);
 	}
 }
 
 - (id)valueForRelationship:(DKRelationshipDescription *)relationshipDescription
 {
+	NSParameterAssert(relationshipDescription);
+	
+	NSError *error = nil;
+	DKRelationshipType relationshipType = relationshipDescription.relationshipType;
+	NSString *escapedRelationshipName = [relationshipDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+	NSString *escapedTableName = [_dk_mTableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+	
+	if(relationshipType == kDKRelationshipTypeOneToOne)
+	{
+		//
+		//	Look up the unique identifier of the value associated with this relationship.
+		//
+		NSString *selectQueryString = dk_string_from_format(
+			dk_stringify_sql(
+				SELECT %@ FROM %@ WHERE _dk_uniqueIdentifier=%lld
+			),
+			escapedRelationshipName, escapedTableName, _dk_mUniqueIdentifier
+		);
+		
+		
+		DKCompiledSQLQuery *selectQuery = [_dk_mDatabase compileSQLQuery:selectQueryString error:&error];
+		NSAssert((selectQuery != nil), 
+				 @"Could not select one-to-one relationship identifier. Got error %@.", error);
+		
+		
+		if([selectQuery nextRow])
+		{
+			//
+			//	If the resultant unique identifier is 0, it is assumed this means NULL in the database.
+			//
+			int64_t relationshipResultUniqueIdentifier = [selectQuery longLongForColumnAtIndex:0];
+			if(relationshipResultUniqueIdentifier == 0)
+				return nil;
+			
+			return [_dk_mDatabase databaseObjectInTable:relationshipDescription.targetTable 
+								   withUniqueIdentifier:relationshipResultUniqueIdentifier];
+		}
+	}
+	
 	return nil;
 }
 
@@ -441,7 +629,48 @@
 
 - (void)prepareForDeletion
 {
-	//Do nothing.
+	NSError *error = nil;
+	
+	for (DKPropertyDescription *property in _dk_mTableDescription.properties)
+	{
+		if(![property isKindOfClass:[DKRelationshipDescription class]])
+			continue;
+		
+		//
+		//	Destroy any remnants of this values relationships. We don't want
+		//	the database to become corrupted with stale references.
+		//
+		DKRelationshipDescription *relationship = (DKRelationshipDescription *)property;
+		DKRelationshipDescription *inverseRelationship = relationship.inverseRelationship;
+		if(inverseRelationship)
+		{
+			DKManagedObject *existingValue = [self valueForRelationship:relationship];
+			if(existingValue)
+			{
+				DKRelationshipDeleteAction deleteAction = relationship.deleteAction;
+				if(deleteAction == kDKRelationshipDeleteActionActionNullify)
+				{
+					NSString *escapedInverseTableName = [existingValue.tableDescription.name stringByEscapingStringForLiteralUseInSQLQueries];
+					NSString *escapedInverseColumnName = [inverseRelationship.name stringByEscapingStringForLiteralUseInSQLQueries];
+					
+					NSString *inverseRelationshipUpdateQueryString = dk_string_from_format(
+						dk_stringify_sql(
+							UPDATE %@ SET '%@' = NULL WHERE _dk_uniqueIdentifier=%lld
+						),
+						escapedInverseTableName, escapedInverseColumnName, existingValue.uniqueIdentifier
+					);
+					NSLog(@"inverseRelationshipUpdateQueryString = %@", inverseRelationshipUpdateQueryString);
+					
+					NSAssert([_dk_mDatabase executeSQLQuery:inverseRelationshipUpdateQueryString error:&error],
+							 @"Could not nullify relationship. Got error %@.", error);
+				}
+				else if(deleteAction == kDKRelationshipDeleteActionActionCascade)
+				{
+					/* TODO: Implement cascade deletions */
+				}
+			}
+		}
+	}
 }
 
 #pragma mark -

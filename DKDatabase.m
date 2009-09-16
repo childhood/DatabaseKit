@@ -70,7 +70,6 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 #pragma mark -
 #pragma mark Construction
 
-//! @abstract	Simply raises.
 - (id)init
 {
 	[NSException raise:NSInvalidArgumentException format:@"Attempting to initialize a DKDatabase with init. Use initWithDatabaseAtURL:layout:error: instead."];
@@ -174,6 +173,37 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 }
 
 #pragma mark -
+#pragma mark Cache
+
+- (id)databaseObjectInTable:(DKTableDescription *)table withUniqueIdentifier:(int64_t)uniqueIdentifier
+{
+	@synchronized(self)
+	{
+		//
+		//	If an existing object already exists, we use it.
+		//	If one doesn't exist we create a new one and cache it.
+		//
+		id databaseObject = nil;//NSMapGet(mManagedObjects, (const void *)uniqueIdentifier);
+		
+		if(!databaseObject)
+		{
+			databaseObject = [[table.databaseObjectClass alloc] initWithUniqueIdentifier:uniqueIdentifier table:table database:self];
+			
+			//
+			//	Note the address of the database object. We own this object (its our slave)
+			//	and we need to be able to destroy it later when we no longer have a use for it.
+			//
+#if __OBJC_GC__
+			[[NSGarbageCollector defaultCollector] disableCollectorForPointer:databaseObject];
+#endif /* __OBJC_GC__ */
+			NSMapInsert(mManagedObjects, (const void *)uniqueIdentifier, databaseObject);
+		}
+		
+		return databaseObject;
+	}
+}
+
+#pragma mark -
 #pragma mark Fetching
 
 - (NSSet *)fetchObjectsInTable:(DKTableDescription *)table matchingQuery:(NSString *)query returnsObjectsAsPromises:(BOOL)returnsObjectsAsPromises error:(NSError **)error
@@ -222,62 +252,19 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	//	and create a database-object for each given unique identifier.
 	//
 	NSMutableSet *objects = [NSMutableSet set];
-	id databaseObject = nil;
 	while ([selectQuery nextRow])
 	{
 		int64_t uniqueIdentifier = [selectQuery longLongForColumnAtIndex:0];
-		@synchronized(self)
-		{
-			//
-			//	If an existing object already exists, we use it.
-			//	If one doesn't exist we create a new one and cache it.
-			//
-			databaseObject = NSMapGet(mManagedObjects, (const void *)uniqueIdentifier);
-		}
+		id databaseObject = [self databaseObjectInTable:table withUniqueIdentifier:uniqueIdentifier];
 		
-		if(databaseObject)
-		{
-			//
-			//	If we've been asked to fulfill promises immediately then we
-			//	tell each database object to cache all of their columns.
-			//
-			if(!returnsObjectsAsPromises)
-				[databaseObject cacheAllColumnsInTable];
-			
-			[objects addObject:databaseObject];
-		}
-		else
-		{
-			databaseObject = [[databaseObjectClass alloc] initWithUniqueIdentifier:uniqueIdentifier 
-																			 table:table 
-																		  database:self];
-			if(databaseObject)
-			{
-				[databaseObject awakeFromFetch];
-				
-				//
-				//	If we've been asked to fulfill promises immediately then we
-				//	tell each database object to cache all of their columns.
-				//
-				if(!returnsObjectsAsPromises)
-					[databaseObject cacheAllColumnsInTable];
-				
-				[objects addObject:databaseObject];
-				
-				
-				@synchronized(self)
-				{
-					//
-					//	Note the address of the database object. We own this object (its our slave)
-					//	and we need to be able to destroy it later when we no longer have a use for it.
-					//
-#if __OBJC_GC__
-					[[NSGarbageCollector defaultCollector] disableCollectorForPointer:databaseObject];
-#endif /* __OBJC_GC__ */
-					NSMapInsert(mManagedObjects, (const void *)uniqueIdentifier, databaseObject);
-				}
-			}
-		}
+		//
+		//	If we've been asked to fulfill promises immediately then we
+		//	tell each database object to cache all of their columns.
+		//
+		if(!returnsObjectsAsPromises)
+			[databaseObject cacheAllColumnsInTable];
+		
+		[objects addObject:databaseObject];
 	}
 	
 	return objects;
@@ -336,7 +323,7 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 	//	unique identifier of the row we're about to create. If we don't find an existing row
 	//	then we're the first object to be inserted into this table and we use the identifier '0'.
 	//
-	int64_t newUniqueIdentifier = 0;
+	int64_t newUniqueIdentifier = 1;
 	if([selectOffsetQuery nextRow])
 		newUniqueIdentifier = [selectOffsetQuery longLongForColumnAtIndex:0] + 1;
 	
@@ -649,9 +636,18 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 		NSString *tableName = [table.name stringByEscapingStringForLiteralUseInSQLQueries];
 		BOOL tableExisted = [self tableExistsWithName:tableName];
 		
+		
+		//
+		//	Create the table if it doesn't exist yet.
+		//
 		if(![self createTableWithDescriptionIfAbsent:table error:error])
 			return NO;
 		
+		
+		//
+		//	If the table didn't exist before this method invocation then we create
+		//	an entry in the database sequence table.
+		//
 		if(!tableExisted)
 		{
 			NSString *insertInitialSequenceForTableQueryString = dk_string_from_format(
@@ -669,6 +665,17 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 			);
 			if(![self executeSQLQuery:insertInitialSequenceForTableQueryString error:error])
 				return NO;
+		}
+		
+		
+		//
+		//	Add the accessor/mutators for to the database object class.
+		//
+		Class databaseObjectClass = table.databaseObjectClass;
+		if(databaseObjectClass != [DKManagedObject class])
+		{
+			for (DKPropertyDescription *property in table.properties)
+				[databaseObjectClass addAccessorMutatorPairForProperty:property];
 		}
 	}
 	
@@ -739,8 +746,22 @@ NSString *const kDKDatabaseRelationshipDescriptionTableName = @"_DKRelationshipD
 		}
 		else if([property isKindOfClass:[DKRelationshipDescription class]])
 		{
-			/* TODO: Implement relationships. */
-			NSLog(@"*** DatabaseKit: Relationships are not implemented.");
+			DKRelationshipDescription *relationshipDescription = (DKRelationshipDescription *)property;
+			DKRelationshipType relationshipType = relationshipDescription.relationshipType;
+			if(relationshipType == kDKRelationshipTypeOneToOne)
+			{
+				//
+				//	One to one relationships are 
+				//
+				[createTableQueryString appendFormat:@", %@ BIGINT", [relationshipDescription.name stringByEscapingStringForLiteralUseInSQLQueries]];
+				
+				
+				//
+				//	If a relationship is required, we append the NOT NULL column constraint.
+				//
+				if(relationshipDescription.isRequired)
+					[createTableQueryString appendString:@" NOT NULL"];
+			}
 		}
 		else
 		{

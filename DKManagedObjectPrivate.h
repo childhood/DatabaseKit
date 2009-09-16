@@ -10,11 +10,23 @@
 #import <Cocoa/Cocoa.h>
 #import "DKManagedObject.h"
 
-@class DKAttributeDescription, DKRelationshipDescription;
+@class DKPropertyDescription, DKAttributeDescription, DKRelationshipDescription;
 
 //! @abstract	The private interface continuation for DKManagedObject.
 @interface DKManagedObject () //Continuation
 
+#pragma mark Accessor/Mutator Generation
+
+/*!
+ @method
+ @abstract		Add an accessor/mutator pair for a specified property.
+ @param			property	The property to generate an accessor/mutator pair for. May not be nil.
+ @discussion	This method will not replace existing accessors/mutators whose names match those
+				of the specified property.
+ */
++ (void)addAccessorMutatorPairForProperty:(DKPropertyDescription *)property;
+
+#pragma mark -
 #pragma mark Initialization
 
 /*!

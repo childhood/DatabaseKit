@@ -85,6 +85,9 @@
  @method
  @abstract		Invoked by DatabaseKit when the receiver is about to be deleted from the database.
  @discussion	You do not typically invoke this method yourself, it is called automatically by DKDatabase.
+				
+				Subclasses _must_ invoke their superclass's implementation of this method. Relationships will
+				not be properly cleaned up and this can lead to corruption of the database.
  */
 - (void)prepareForDeletion;
 

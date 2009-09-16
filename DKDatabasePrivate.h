@@ -40,6 +40,18 @@ DK_EXTERN NSString *const kDKDatabaseRelationshipDescriptionTableName;
 @property (readonly) sqlite3 *sqliteConnection;
 
 #pragma mark -
+#pragma mark Cache
+
+/*!
+ @method
+ @abstract	Look for an existing database object with a specified unique identifier, creating a new object if one cannot be found.
+ @param		table				The table the database object belongs to. May not be nil.
+ @param		uniqueIdentifier	The unique identifier of the database object.
+ @result	A DKManagedObject owned by the receiver.
+ */
+- (id)databaseObjectInTable:(DKTableDescription *)table withUniqueIdentifier:(int64_t)uniqueIdentifier;
+
+#pragma mark -
 #pragma mark Database Layout
 
 /*!

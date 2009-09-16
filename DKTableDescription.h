@@ -16,9 +16,9 @@
  */
 @interface DKTableDescription : NSObject
 {
-	NSString *mName;
-	Class mDatabaseObjectClass;
-	NSArray *mProperties;
+	/* owner */	NSString *mName;
+	/* weak */	Class mDatabaseObjectClass;
+	/* owner */	NSArray *mProperties;
 }
 /*!
  @method
@@ -62,6 +62,7 @@
 @interface DKPropertyDescription : NSObject
 {
 	NSString *mName;
+	BOOL mIsRequired;
 }
 
 /*!
@@ -69,6 +70,12 @@
  @abstract	The name of the property.
  */
 @property (copy) NSString *name;
+
+/*!
+ @property
+ @abstract	Whether or not this attribute requires a non-nil value.
+ */
+@property BOOL isRequired;
 
 @end
 
@@ -160,11 +167,10 @@ DK_EXTERN NSString *DKAttributeTypeToSQLiteType(DKAttributeType attributeType);
 @interface DKAttributeDescription : DKPropertyDescription
 {
 @package
-	DKAttributeType type;
-	BOOL isRequired;
-	NSNumber *minimumValue;
-	NSNumber *maximumValue;
-	id defaultValue;
+	/* n/a */	DKAttributeType type;
+	/* owner */	NSNumber *minimumValue;
+	/* owner */	NSNumber *maximumValue;
+	/* owner */	id defaultValue;
 }
 /*!
  @method
@@ -182,12 +188,6 @@ DK_EXTERN NSString *DKAttributeTypeToSQLiteType(DKAttributeType attributeType);
  @abstract	The type of the attribute.
  */
 @property DKAttributeType type;
-
-/*!
- @property
- @abstract	Whether or not this attribute requires a non-nil value.
- */
-@property BOOL isRequired;
 
 /*!
  @property
@@ -226,18 +226,45 @@ typedef enum _DKRelationshipDeleteAction {
 
 #pragma mark -
 
+/*!
+ @class
+ @abstract	This class is used to describe relationships in a table description.
+ */
 @interface DKRelationshipDescription : DKPropertyDescription
 {
 @package
-	NSString *destination;
-	NSString *inverseRelationshipName;
-	DKRelationshipType relationshipType;
-	DKRelationshipDeleteAction deleteAction;
+	/* weak */	DKTableDescription *targetTable;
+	/* weak */	DKRelationshipDescription *inverseRelationship;
+	/* n/a */	DKRelationshipType relationshipType;
+	/* n/a */	DKRelationshipDeleteAction deleteAction;
 }
-@property (copy) NSString *destination;
-@property (copy) NSString *inverseRelationshipName;
++ (DKRelationshipDescription *)relationshipWithTargetTable:(DKTableDescription *)targetTable inverseRelationship:(DKRelationshipDescription *)inverseRelationship type:(DKRelationshipType)type;
 
+/*!
+ @property
+ @abstract		The table this relationship targets.
+ @discussion	This property does not retain its value to prevent retain cycles.
+ */
+@property (assign) DKTableDescription *targetTable;
+
+/*!
+ @property
+ @abstract		The inverse relationship of this relationship, if there is one.
+ @discussion	This property does not retain its value to prevent retain cycles.
+ */
+@property (assign) DKRelationshipDescription *inverseRelationship;
+
+
+/*!
+ @property
+ @abstract	The type of relationship that is being described.
+ */
 @property DKRelationshipType relationshipType;
+
+/*!
+ @property
+ @abstract	The action to take upon deletion.
+ */
 @property DKRelationshipDeleteAction deleteAction;
 @end
 

@@ -59,6 +59,11 @@
 	return nil;
 }
 
+- (NSString *)description
+{
+	return [NSString stringWithFormat:@"<%@:%p (name: %@, databaseObjectClass: %@, properties: [%@])>", [self className], self, mName, NSStringFromClass(mDatabaseObjectClass), [mProperties componentsJoinedByString:@", "]];
+}
+
 @end
 
 #pragma mark -
@@ -66,6 +71,7 @@
 @implementation DKPropertyDescription
 
 @synthesize name = mName;
+@synthesize isRequired = mIsRequired;
 
 - (void)dealloc
 {
@@ -117,7 +123,7 @@ NSString *DKAttributeTypeToSQLiteType(DKAttributeType attributeType)
 
 @implementation DKAttributeDescription
 
-@synthesize type, isRequired, minimumValue, maximumValue, defaultValue;
+@synthesize type, minimumValue, maximumValue, defaultValue;
 
 - (void)dealloc
 {
@@ -132,23 +138,49 @@ NSString *DKAttributeTypeToSQLiteType(DKAttributeType attributeType)
 {
 	NSParameterAssert(name);
 	
-	DKAttributeDescription *attribute = [[DKAttributeDescription new] autorelease];
+	DKAttributeDescription *attribute = [[self new] autorelease];
+	
 	attribute.name = name;
 	attribute.type = type;
+	
 	return attribute;
+}
+
+- (NSString *)description
+{
+	return [NSString stringWithFormat:@"<%@:%p (name: %@, type: %@)>", [self className], self, mName, DKAttributeTypeToSQLiteType(type)];
 }
 
 @end
 
 @implementation DKRelationshipDescription
 
-@synthesize destination, inverseRelationshipName, relationshipType, deleteAction;
+@synthesize targetTable, inverseRelationship, relationshipType, deleteAction;
 
 - (void)dealloc
 {
-	self.destination = nil;
+	self.targetTable = nil;
+	self.inverseRelationship = nil;
 	
 	[super dealloc];
+}
+
++ (DKRelationshipDescription *)relationshipWithTargetTable:(DKTableDescription *)targetTable inverseRelationship:(DKRelationshipDescription *)inverseRelationship type:(DKRelationshipType)type
+{
+	NSParameterAssert(targetTable);
+	
+	DKRelationshipDescription *relationship = [[self new] autorelease];
+	
+	relationship.targetTable = targetTable;
+	relationship.inverseRelationship = inverseRelationship;
+	relationship.relationshipType = type;
+	
+	return relationship;
+}
+
+- (NSString *)description
+{
+	return [NSString stringWithFormat:@"<%@:%p (name: %@, from %@ to %@)>", [self className], self, mName, targetTable.name, inverseRelationship.targetTable.name];
 }
 
 @end
